@@ -1,0 +1,55 @@
+services:
+  traefik:
+    image: traefik:v3.5
+    container_name: traefik
+    restart: unless-stopped
+    
+    # Permisos necesarios para que Traefik escuche en puertos privilegiados
+    security_opt:
+      - no-new-privileges:true
+    
+    # Puertos expuestos
+    ports:
+      - "${HTTP_PORT:-80}:80"       # HTTP
+      - "${HTTPS_PORT:-443}:443"     # HTTPS
+      - "${DASHBOARD_PORT:-8080}:8080"  # Dashboard (solo para desarrollo/localhost)
+    
+    # Variables de entorno
+    environment:
+      - TZ=${TZ:-UTC}
+    
+    # Volúmenes compartidos entre dev y prod
+    volumes:
+      # Socket de Docker para detectar contenedores automáticamente
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      
+      # Configuración estática (se carga al iniciar)
+      - ./config/traefik.yml:/etc/traefik/traefik.yml:ro
+      
+      # Configuración dinámica (se recarga automáticamente)
+      - ./config/dynamic:/etc/traefik/dynamic:ro
+      
+      # Logs
+      - ./logs:/var/log/traefik
+      
+      # Certificados
+      - ./certs:/etc/traefik/certs
+    
+    # Redes
+    networks:
+      - traefik-public
+    
+    # Labels para el dashboard
+    labels:
+      - "traefik.enable=true"
+      
+      # Dashboard
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.${DEV_DOMAIN:-localhost}`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.entrypoints=web"
+
+# Red externa que compartirán todos los proyectos
+networks:
+  traefik-public:
+    name: ${TRAEFIK_NETWORK:-traefik-public}
+    external: true

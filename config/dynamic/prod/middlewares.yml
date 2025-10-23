@@ -1,0 +1,149 @@
+# ============================================
+# MIDDLEWARES DE PRODUCCIÓN
+# ============================================
+# Middlewares optimizados y seguros para producción
+
+http:
+  middlewares:
+    # ==========================================
+    # SECURITY HEADERS ESTRICTOS
+    # ==========================================
+    prod-security:
+      headers:
+        # Anti-clickjacking
+        frameDeny: true
+        customFrameOptionsValue: "SAMEORIGIN"
+        
+        # HTTPS forzado
+        sslRedirect: true
+        sslForceHost: true
+        
+        # HSTS - 1 año
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        
+        # Prevención de ataques
+        contentTypeNosniff: true
+        browserXssFilter: true
+        forceSTSHeader: true
+        
+        # Referrer policy
+        referrerPolicy: "strict-origin-when-cross-origin"
+        
+        # Feature/Permissions policy
+        permissionsPolicy: "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
+        
+        # Content Security Policy
+        contentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'"
+
+    # ==========================================
+    # CORS RESTRINGIDO
+    # ==========================================
+    prod-cors:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - PATCH
+        accessControlAllowOriginList:
+          # Especifica tus dominios permitidos
+          - "https://example.com"
+          - "https://www.example.com"
+        accessControlAllowHeaders:
+          - "Content-Type"
+          - "Authorization"
+          - "X-Requested-With"
+        accessControlAllowCredentials: true
+        accessControlMaxAge: 3600
+        addVaryHeader: true
+
+    # ==========================================
+    # RATE LIMITING ESTRICTO
+    # ==========================================
+    prod-rate-limit:
+      rateLimit:
+        average: 50    # 50 req/s
+        burst: 100
+        period: 1s
+        sourceCriterion:
+          ipStrategy:
+            depth: 1
+
+    prod-rate-limit-api:
+      rateLimit:
+        average: 20
+        burst: 40
+        period: 1s
+        sourceCriterion:
+          ipStrategy:
+            depth: 1
+
+    prod-rate-limit-strict:
+      rateLimit:
+        average: 5
+        burst: 10
+        period: 1s
+        sourceCriterion:
+          ipStrategy:
+            depth: 1
+
+    # ==========================================
+    # COMPRESSION
+    # ==========================================
+    prod-compression:
+      compress:
+        excludedContentTypes:
+          - "text/event-stream"
+          - "application/grpc"
+        minResponseBodyBytes: 1024  # Solo comprimir respuestas > 1KB
+
+    # ==========================================
+    # CIRCUIT BREAKER
+    # ==========================================
+    prod-circuit-breaker:
+      circuitBreaker:
+        expression: "NetworkErrorRatio() > 0.30 || ResponseCodeRatio(500, 600, 0, 600) > 0.25"
+
+    # ==========================================
+    # RETRY CON BACKOFF
+    # ==========================================
+    prod-retry:
+      retry:
+        attempts: 3
+        initialInterval: 100ms
+
+    # ==========================================
+    # IP WHITELIST (para admin/internal)
+    # ==========================================
+    prod-ip-whitelist:
+      ipWhiteList:
+        sourceRange:
+          # Añade IPs de tu oficina/VPN
+          - "203.0.113.0/24"
+        ipStrategy:
+          depth: 1
+
+    # ==========================================
+    # BUFFERING para uploads
+    # ==========================================
+    prod-buffering:
+      buffering:
+        maxRequestBodyBytes: 52428800   # 50MB
+        memRequestBodyBytes: 1048576    # 1MB
+        maxResponseBodyBytes: 52428800
+        memResponseBodyBytes: 1048576
+        retryExpression: "IsNetworkError() && Attempts() < 2"
+
+    # ==========================================
+    # HEADERS CUSTOM
+    # ==========================================
+    prod-custom-headers:
+      headers:
+        customResponseHeaders:
+          X-Powered-By: ""  # Oculta información del servidor
+          Server: ""
+        customRequestHeaders:
+          X-Forwarded-Proto: "https"

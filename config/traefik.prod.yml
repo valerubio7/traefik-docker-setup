@@ -1,0 +1,101 @@
+# ============================================
+# TRAEFIK - CONFIGURACIÓN DE PRODUCCIÓN
+# ============================================
+# Esta configuración sobrescribe traefik.yml para producción
+
+global:
+  sendAnonymousUsage: false
+
+# ============================================
+# ENTRYPOINTS
+# ============================================
+entryPoints:
+  # Puerto 80 - HTTP (redirige a HTTPS)
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true  # 301 redirect
+
+  # Puerto 443 - HTTPS
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        certResolver: "letsencrypt"  # Usa Let's Encrypt
+        domains:
+          - main: "example.com"      # Cambiar por tu dominio
+            sans:
+              - "*.example.com"       # Wildcard para subdominios
+      # Habilitar HTTP/2 y HTTP/3
+      middlewares:
+        - security-headers@file
+
+# ============================================
+# PROVIDERS
+# ============================================
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: "traefik-public"
+    watch: true
+    # Seguridad adicional en producción
+    swarmMode: false
+    defaultRule: "Host(`{{ normalize .Name }}.example.com`)"
+
+  file:
+    directory: "/etc/traefik/dynamic"
+    watch: true
+
+# ============================================
+# CERTIFICADOS SSL - Let's Encrypt
+# ============================================
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: "tu-email@example.com"  # Se toma de variable de entorno
+      storage: "/etc/traefik/certs/prod/acme.json"
+      # Usa el challenge HTTP (requiere puerto 80 abierto)
+      httpChallenge:
+        entryPoint: web
+      # Alternativamente, usa DNS challenge si tienes API de tu proveedor DNS
+      # dnsChallenge:
+      #   provider: cloudflare
+      #   delayBeforeCheck: 0
+
+# ============================================
+# API y DASHBOARD (SEGURO en producción)
+# ============================================
+api:
+  dashboard: true
+  debug: false     # NO debug en producción
+  insecure: false  # NUNCA inseguro en producción
+
+# ============================================
+# LOGGING (optimizado para producción)
+# ============================================
+log:
+  level: "WARN"    # Solo warnings y errores
+  filePath: "/var/log/traefik/prod/traefik.log"
+  format: "json"   # JSON para procesamiento automático
+
+# Log de acceso optimizado
+accessLog:
+  filePath: "/var/log/traefik/prod/access.log"
+  format: "json"
+  bufferingSize: 100
+  filters:
+    statusCodes:
+      - "400-499"  # Errores del cliente
+      - "500-599"  # Errores del servidor
+    # No registrar 200-299 para ahorrar espacio
+  fields:
+    headers:
+      defaultMode: "drop"  # No registrar headers por defecto
+      names:
+        User-Agent: "keep"
+        Referer: "keep"

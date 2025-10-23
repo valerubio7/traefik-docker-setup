@@ -1,0 +1,68 @@
+# ============================================
+# TRAEFIK - CONFIGURACIÓN DE DESARROLLO
+# ============================================
+# Esta configuración sobrescribe traefik.yml para desarrollo
+
+global:
+  sendAnonymousUsage: false
+
+# ============================================
+# ENTRYPOINTS
+# ============================================
+entryPoints:
+  # Puerto 80 - HTTP (SIN redirección a HTTPS en desarrollo)
+  web:
+    address: ":80"
+    # NO redirigir a HTTPS en desarrollo
+    # Comentamos la redirección para facilitar debugging
+
+  # Puerto 443 - HTTPS con certificados autofirmados
+  websecure:
+    address: ":443"
+    http:
+      tls: true  # Habilita TLS, los certificados se definen en dynamic/dev/certificates.yml
+
+# ============================================
+# PROVIDERS
+# ============================================
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: "traefik-public"
+    watch: true
+
+  file:
+    directory: "/etc/traefik/dynamic"
+    watch: true
+
+# ============================================
+# API y DASHBOARD (modo inseguro para desarrollo)
+# ============================================
+api:
+  dashboard: true
+  debug: true      # Muestra información extra para debugging
+  insecure: true   # Permite acceso sin autenticación (solo localhost)
+
+# ============================================
+# LOGGING (modo verbose para desarrollo)
+# ============================================
+log:
+  level: "DEBUG"   # Máximo nivel de detalle
+  filePath: "/var/log/traefik/dev/traefik.log"
+  format: "common"
+
+# Log de acceso con más detalle
+accessLog:
+  filePath: "/var/log/traefik/dev/access.log"
+  format: "common"
+  bufferingSize: 50
+  filters:
+    statusCodes:
+      - "200-299"
+      - "300-399"
+      - "400-499"
+      - "500-599"
+  fields:
+    headers:
+      defaultMode: "keep"  # Registra todos los headers para debugging

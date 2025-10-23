@@ -1,0 +1,52 @@
+services:
+  traefik:
+    # Añade volúmenes específicos de producción
+    volumes:
+      # Configuración estática de producción
+      - ./config/traefik.prod.yml:/etc/traefik/traefik.prod.yml:ro
+      
+      # Configuración dinámica de producción
+      - ./config/dynamic/prod:/etc/traefik/dynamic/prod:ro
+      
+      # Logs específicos de producción
+      - ./logs/prod:/var/log/traefik/prod
+      
+      # Certificados de Let's Encrypt (read-write porque se renuevan automáticamente)
+      - ./certs/prod:/etc/traefik/certs/prod
+    
+    # Variables de entorno específicas de producción
+    environment:
+      - ENVIRONMENT=prod
+      - TRAEFIK_LOG_LEVEL=${LOG_LEVEL:-WARN}
+      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
+    
+    # En producción, NO exponemos el dashboard directamente
+    # Solo lo hacemos accesible mediante un subdominio protegido
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+      # NO exponer 8080 en producción
+    
+    # Labels para dashboard protegido en producción
+    labels:
+      # Dashboard protegido con autenticación
+      - "traefik.http.routers.dashboard-secure.rule=Host(`traefik.${PROD_DOMAIN}`)"
+      - "traefik.http.routers.dashboard-secure.service=api@internal"
+      - "traefik.http.routers.dashboard-secure.entrypoints=websecure"
+      - "traefik.http.routers.dashboard-secure.tls=true"
+      - "traefik.http.routers.dashboard-secure.tls.certresolver=letsencrypt"
+      
+      # Middleware de autenticación básica
+      - "traefik.http.routers.dashboard-secure.middlewares=dashboard-auth"
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=${TRAEFIK_DASHBOARD_USER}:${TRAEFIK_DASHBOARD_PASSWORD}"
+      
+      # Redirección HTTP -> HTTPS
+      - "traefik.http.routers.dashboard-http.rule=Host(`traefik.${PROD_DOMAIN}`)"
+      - "traefik.http.routers.dashboard-http.entrypoints=web"
+      - "traefik.http.routers.dashboard-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+    
+    # Comando para usar la configuración de producción
+    command:
+      - "--configFile=/etc/traefik/traefik.prod.yml"

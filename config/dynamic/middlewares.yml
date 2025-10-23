@@ -1,0 +1,140 @@
+# ============================================
+# MIDDLEWARES GLOBALES
+# ============================================
+# Estos middlewares se pueden reutilizar en cualquier router
+
+http:
+  middlewares:
+    # ==========================================
+    # SEGURIDAD - Headers de seguridad HTTP
+    # ==========================================
+    security-headers:
+      headers:
+        # Previene clickjacking
+        frameDeny: true
+        # Fuerza HTTPS en navegadores
+        sslRedirect: true
+        # HSTS - HTTP Strict Transport Security
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        # Previene MIME type sniffing
+        contentTypeNosniff: true
+        # Protección XSS
+        browserXssFilter: true
+        # Referrer policy
+        referrerPolicy: "strict-origin-when-cross-origin"
+        # Permissions policy (antigua feature policy)
+        permissionsPolicy: "geolocation=(), microphone=(), camera=()"
+        # Content Security Policy básica
+        customFrameOptionsValue: "SAMEORIGIN"
+
+    # ==========================================
+    # CORS - Para APIs públicas
+    # ==========================================
+    cors-headers:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - PATCH
+          - OPTIONS
+        accessControlAllowOriginList:
+          - "*"  # Cambiar por dominios específicos en producción
+        accessControlAllowHeaders:
+          - "Content-Type"
+          - "Authorization"
+          - "X-Requested-With"
+        accessControlMaxAge: 100
+        addVaryHeader: true
+
+    # ==========================================
+    # RATE LIMITING - Protección contra abusos
+    # ==========================================
+    rate-limit:
+      rateLimit:
+        average: 100  # 100 requests por segundo
+        burst: 200    # Hasta 200 requests en burst
+        period: 1s
+
+    # Rate limit más estricto para APIs sensibles
+    rate-limit-strict:
+      rateLimit:
+        average: 10
+        burst: 20
+        period: 1s
+
+    # ==========================================
+    # COMPRESIÓN - Reduce tamaño de respuestas
+    # ==========================================
+    compression:
+      compress:
+        excludedContentTypes:
+          - "text/event-stream"
+
+    # ==========================================
+    # RETRY - Reintentos automáticos
+    # ==========================================
+    retry:
+      retry:
+        attempts: 3
+        initialInterval: 100ms
+
+    # ==========================================
+    # REDIRECTS
+    # ==========================================
+    # Redirección HTTP -> HTTPS
+    redirect-to-https:
+      redirectScheme:
+        scheme: https
+        permanent: true
+
+    # Redirección www -> non-www
+    redirect-non-www:
+      redirectRegex:
+        regex: "^https://www\\.(.+)"
+        replacement: "https://${1}"
+        permanent: true
+
+    # ==========================================
+    # AUTENTICACIÓN BÁSICA (ejemplos)
+    # ==========================================
+    # Genera passwords con: htpasswd -nb usuario password
+    auth-basic:
+      basicAuth:
+        users:
+          - "admin:$apr1$..."  # Cambiar por hash real
+
+    # ==========================================
+    # IP WHITELIST - Restricción por IP
+    # ==========================================
+    ip-whitelist-local:
+      ipWhiteList:
+        sourceRange:
+          - "127.0.0.1/32"
+          - "192.168.0.0/16"
+          - "10.0.0.0/8"
+          - "172.16.0.0/12"
+
+    # ==========================================
+    # CUSTOM HEADERS - Headers personalizados
+    # ==========================================
+    api-headers:
+      headers:
+        customResponseHeaders:
+          X-Custom-Response-Header: "value"
+        customRequestHeaders:
+          X-Custom-Request-Header: "value"
+
+    # ==========================================
+    # BUFFERING - Para uploads grandes
+    # ==========================================
+    buffering:
+      buffering:
+        maxRequestBodyBytes: 10485760  # 10MB
+        memRequestBodyBytes: 2097152   # 2MB
+        maxResponseBodyBytes: 10485760
+        memResponseBodyBytes: 2097152
+        retryExpression: "IsNetworkError() && Attempts() < 2"

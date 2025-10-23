@@ -1,0 +1,33 @@
+# Environment variables
+.env
+
+# Logs
+logs/*.log
+logs/dev/*.log
+logs/prod/*.log
+
+# Certificados de producción (Let's Encrypt los genera automáticamente)
+certs/prod/acme.json
+
+# Certificados de desarrollo (se generan localmente, no subir a git)
+certs/dev/*.crt
+certs/dev/*.key
+certs/dev/*.pem
+
+# Archivos temporales de Docker
+*.swp
+*.swo
+*~
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+*.code-workspace
+
+# Backups
+*.bak
+*.backup

@@ -1,0 +1,28 @@
+# ============================================
+# CERTIFICADOS DE DESARROLLO
+# ============================================
+# Certificados autofirmados para desarrollo local
+
+tls:
+  certificates:
+    # Certificado para localhost y *.localhost
+    - certFile: "/etc/traefik/certs/dev/localhost.crt"
+      keyFile: "/etc/traefik/certs/dev/localhost.key"
+      stores:
+        - default
+
+  # Opciones TLS relajadas para desarrollo
+  options:
+    dev:
+      minVersion: "VersionTLS12"
+      sniStrict: false  # Menos estricto en desarrollo
+      alpnProtocols:
+        - "h2"
+        - "http/1.1"
+
+  # Store con certificado por defecto
+  stores:
+    default:
+      defaultCertificate:
+        certFile: "/etc/traefik/certs/dev/localhost.crt"
+        keyFile: "/etc/traefik/certs/dev/localhost.key"

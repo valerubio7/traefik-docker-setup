@@ -1,0 +1,60 @@
+# ============================================
+# MIDDLEWARES DE DESARROLLO
+# ============================================
+# Middlewares específicos para ambiente de desarrollo
+
+http:
+  middlewares:
+    # ==========================================
+    # CORS PERMISIVO (solo desarrollo)
+    # ==========================================
+    dev-cors:
+      headers:
+        accessControlAllowMethods:
+          - "*"
+        accessControlAllowOriginList:
+          - "*"  # Permite todos los orígenes en desarrollo
+        accessControlAllowHeaders:
+          - "*"
+        accessControlAllowCredentials: true
+        accessControlMaxAge: 100
+        addVaryHeader: true
+
+    # ==========================================
+    # HEADERS DE DEBUG
+    # ==========================================
+    dev-debug-headers:
+      headers:
+        customResponseHeaders:
+          X-Debug-Environment: "development"
+          X-Debug-Server: "traefik-dev"
+        # Desactiva cache en desarrollo
+        customRequestHeaders:
+          Cache-Control: "no-cache, no-store, must-revalidate"
+
+    # ==========================================
+    # SIN RATE LIMITING en desarrollo
+    # ==========================================
+    # En desarrollo no limitamos requests para facilitar testing
+
+    # ==========================================
+    # SECURITY HEADERS RELAJADOS
+    # ==========================================
+    dev-security:
+      headers:
+        # Menos estricto que producción
+        frameDeny: false
+        contentTypeNosniff: true
+        browserXssFilter: true
+        # Sin HSTS en desarrollo
+        sslRedirect: false
+        # CSP permisiva
+        contentSecurityPolicy: "default-src 'self' 'unsafe-inline' 'unsafe-eval' *"
+
+    # ==========================================
+    # LOGGING VERBOSE
+    # ==========================================
+    dev-logging:
+      headers:
+        customResponseHeaders:
+          X-Request-ID: "{{.RequestID}}"

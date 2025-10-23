@@ -1,0 +1,43 @@
+# ============================================
+# CERTIFICADOS DE PRODUCCIÓN
+# ============================================
+# Let's Encrypt maneja los certificados automáticamente
+# Este archivo configura opciones TLS para producción
+
+tls:
+  # Opciones TLS estrictas para producción
+  options:
+    default:
+      minVersion: "VersionTLS12"
+      maxVersion: "VersionTLS13"
+      cipherSuites:
+        # Solo cifrados modernos y seguros
+        - "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+        - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+        - "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
+        - "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"
+        - "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305"
+        - "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305"
+        - "TLS_AES_128_GCM_SHA256"
+        - "TLS_AES_256_GCM_SHA384"
+        - "TLS_CHACHA20_POLY1305_SHA256"
+      curvePreferences:
+        - "CurveP521"
+        - "CurveP384"
+      sniStrict: true  # Rechaza conexiones sin SNI
+      alpnProtocols:
+        - "h2"
+        - "http/1.1"
+
+    # Opción aún más estricta (solo TLS 1.3)
+    modern:
+      minVersion: "VersionTLS13"
+      sniStrict: true
+      alpnProtocols:
+        - "h2"
+        - "http/1.1"
+
+  # Store por defecto
+  # Let's Encrypt guardará certificados automáticamente en acme.json
+  # No es necesario configurar certificados manualmente aquí
+  # Los certificados se generan automáticamente vía el resolver 'letsencrypt'

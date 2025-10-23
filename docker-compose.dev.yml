@@ -1,0 +1,34 @@
+services:
+  traefik:
+    # Añade volúmenes específicos de desarrollo
+    volumes:
+      # Configuración estática de desarrollo
+      - ./config/traefik.dev.yml:/etc/traefik/traefik.dev.yml:ro
+      
+      # Configuración dinámica compartida (tls, routers, middlewares base)
+      - ./config/dynamic:/etc/traefik/dynamic:ro
+      
+      # Logs específicos de desarrollo
+      - ./logs/dev:/var/log/traefik/dev
+      
+      # Certificados autofirmados para desarrollo
+      - ./certs/dev:/etc/traefik/certs/dev:ro
+    
+    # Variables de entorno específicas de desarrollo
+    environment:
+      - ENVIRONMENT=dev
+      - TRAEFIK_LOG_LEVEL=${LOG_LEVEL:-DEBUG}
+    
+    # Labels adicionales para desarrollo
+    labels:
+      # Dashboard sin autenticación en desarrollo (solo localhost)
+      - "traefik.http.routers.dashboard.middlewares="
+      
+      # Habilitar API en modo inseguro (solo para desarrollo)
+      - "traefik.http.routers.api.rule=Host(`traefik.${DEV_DOMAIN:-localhost}`)"
+      - "traefik.http.routers.api.service=api@internal"
+      - "traefik.http.routers.api.entrypoints=web"
+    
+    # Comando para usar la configuración de desarrollo
+    command:
+      - "--configFile=/etc/traefik/traefik.dev.yml"
