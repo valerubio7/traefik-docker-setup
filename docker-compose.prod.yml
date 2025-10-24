@@ -27,6 +27,8 @@ services:
       - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL:?Error: LETSENCRYPT_EMAIL no está definido en .env}
       # CRÍTICO: Validar que PROD_DOMAIN no esté vacío
       - PROD_DOMAIN=${PROD_DOMAIN:?Error: PROD_DOMAIN no está definido en .env}
+      # Orígenes CORS adicionales (opcional)
+      - PROD_CORS_ORIGINS=${PROD_CORS_ORIGINS:-}
     
     # En producción, NO exponemos el dashboard directamente
     # Solo lo hacemos accesible mediante un subdominio protegido
@@ -37,6 +39,17 @@ services:
     
     # Labels para dashboard protegido en producción
     labels:
+      # ==========================================
+      # CORS DINÁMICO - Configurable desde .env
+      # ==========================================
+      # Middleware CORS que se puede usar en otros servicios
+      - "traefik.http.middlewares.prod-cors-dynamic.headers.accessControlAllowMethods=GET,POST,PUT,DELETE,PATCH,OPTIONS"
+      - "traefik.http.middlewares.prod-cors-dynamic.headers.accessControlAllowOriginList=https://${PROD_DOMAIN},https://www.${PROD_DOMAIN}${PROD_CORS_ORIGINS:+,${PROD_CORS_ORIGINS}}"
+      - "traefik.http.middlewares.prod-cors-dynamic.headers.accessControlAllowHeaders=Content-Type,Authorization,X-Requested-With"
+      - "traefik.http.middlewares.prod-cors-dynamic.headers.accessControlAllowCredentials=true"
+      - "traefik.http.middlewares.prod-cors-dynamic.headers.accessControlMaxAge=3600"
+      - "traefik.http.middlewares.prod-cors-dynamic.headers.addVaryHeader=true"
+      
       # ==========================================
       # DASHBOARD - AUTENTICACIÓN + RATE LIMIT + IP WHITELIST
       # ==========================================

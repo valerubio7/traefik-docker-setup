@@ -42,6 +42,27 @@ http:
     # ==========================================
     # CORS RESTRINGIDO
     # ==========================================
+    # ✓ MEJORADO: Ahora configurable desde .env
+    # 
+    # Hay 2 formas de usar CORS en producción:
+    #
+    # 1. MIDDLEWARE DINÁMICO (RECOMENDADO)
+    #    • Configurar desde docker-compose.prod.yml
+    #    • Se actualiza sin reiniciar Traefik
+    #    • Usar middleware: "prod-cors-dynamic@docker"
+    #    • Configuración en .env:
+    #      PROD_DOMAIN=tudominio.com
+    #      PROD_CORS_ORIGINS=https://app.tudominio.com,https://api.tudominio.com
+    #
+    # 2. MIDDLEWARE ESTÁTICO (ESTE ARCHIVO)
+    #    • Configurar aquí (requiere editar archivo)
+    #    • Se recarga automáticamente
+    #    • Usar middleware: "prod-cors"
+    #    • Para cambiar: editar accessControlAllowOriginList abajo
+    #
+    # Ejemplo en docker-compose de otro servicio:
+    # labels:
+    #   - "traefik.http.routers.mi-app-secure.middlewares=prod-cors-dynamic@docker"
     prod-cors:
       headers:
         accessControlAllowMethods:
@@ -51,7 +72,7 @@ http:
           - DELETE
           - PATCH
         accessControlAllowOriginList:
-          # Especifica tus dominios permitidos
+          # IMPORTANTE: Editar los dominios aquí o usar prod-cors-dynamic@docker desde .env
           - "https://example.com"
           - "https://www.example.com"
         accessControlAllowHeaders:
@@ -61,108 +82,10 @@ http:
         accessControlAllowCredentials: true
         accessControlMaxAge: 3600
         addVaryHeader: true
-
-    # ==========================================
-    # RATE LIMITING ESTRICTO
-    # ==========================================
-    # ✓ RECOMENDADO PARA PRODUCCIÓN
-    # Basado en capacidad típica de VPS pequeño
-    #
-    # • prod-rate-limit: General (50 req/s)
-    # • prod-rate-limit-api: APIs (20 req/s)
-    # • prod-rate-limit-strict: Crítico/Público (5 req/s)
-    
-    prod-rate-limit:
-      rateLimit:
-        average: 50    # 50 req/s - Para apps internas
-        burst: 100     # Permite burst temporal
-        period: 1s
-        sourceCriterion:
-          ipStrategy:
-            depth: 1
-
-    prod-rate-limit-api:
-      rateLimit:
-        average: 20    # 20 req/s - Para APIs normales
-        burst: 40
-        period: 1s
-        sourceCriterion:
-          ipStrategy:
-            depth: 1
-
-    prod-rate-limit-strict:
-      rateLimit:
-        average: 5     # 5 req/s - Para APIs públicas/críticas
-        burst: 10
-        period: 1s
-        sourceCriterion:
-          ipStrategy:
-            depth: 1
-
-    # ==========================================
-    # COMPRESSION
-    # ==========================================
-    prod-compression:
-      compress:
-        excludedContentTypes:
-          - "text/event-stream"
-          - "application/grpc"
-        minResponseBodyBytes: 1024  # Solo comprimir respuestas > 1KB
-
-    # ==========================================
-    # CIRCUIT BREAKER
-    # ==========================================
-    prod-circuit-breaker:
-      circuitBreaker:
-        expression: "NetworkErrorRatio() > 0.30 || ResponseCodeRatio(500, 600, 0, 600) > 0.25"
-
-    # ==========================================
-    # RETRY CON BACKOFF
-    # ==========================================
-    prod-retry:
-      retry:
-        attempts: 3
-        initialInterval: 100ms
-
-    # ==========================================
-    # IP WHITELIST (para admin/internal)
-    # ==========================================
-    prod-ip-whitelist:
-      ipWhiteList:
-        sourceRange:
-          # Añade IPs de tu oficina/VPN
-          - "203.0.113.0/24"
-        ipStrategy:
-          depth: 1
-
-    # ==========================================
-    # BUFFERING para uploads
-    # ==========================================
-    prod-buffering:
-      buffering:
-        maxRequestBodyBytes: 52428800   # 50MB
-        memRequestBodyBytes: 1048576    # 1MB
-        maxResponseBodyBytes: 52428800
-        memResponseBodyBytes: 1048576
-        retryExpression: "IsNetworkError() && Attempts() < 2"
-
-    # ==========================================
-    # REDIRECT HTTP -> HTTPS (SOLO PRODUCCIÓN)
-    # ==========================================
-    # CRÍTICO: Este middleware SOLO se define en prod/middlewares.yml
-    # NO está en middlewares.yml base para evitar aplicarse en desarrollo
-    redirect-to-https:
-      redirectScheme:
-        scheme: https
-        permanent: true
-
-    # ==========================================
-    # HEADERS CUSTOM
-    # ==========================================
-    prod-custom-headers:
-      headers:
-        customResponseHeaders:
-          X-Powered-By: ""  # Oculta información del servidor
-          Server: ""
-        customRequestHeaders:
-          X-Forwarded-Proto: "https"
+        accessControlAllowHeaders:
+          - "Content-Type"
+          - "Authorization"
+          - "X-Requested-With"
+        accessControlAllowCredentials: true
+        accessControlMaxAge: 3600
+        addVaryHeader: true
