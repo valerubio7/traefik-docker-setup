@@ -28,6 +28,18 @@ echo "📁 Creando directorios..."
 mkdir -p logs/dev
 mkdir -p certs/dev
 
+# ==========================================
+# VERIFICAR PERMISOS DE CERTIFICADOS
+# ==========================================
+# Certificados autofirmados deben ser legibles
+echo "🔐 Verificando permisos de certificados..."
+if [ -f ./certs/dev/localhost.crt ] && [ -f ./certs/dev/localhost.key ]; then
+    # Asegurar que los permisos sean correctos (644 para crt, 600 para key)
+    chmod 644 ./certs/dev/localhost.crt 2>/dev/null || true
+    chmod 600 ./certs/dev/localhost.key 2>/dev/null || true
+    echo "   ✓ Permisos de certificados verificados"
+fi
+
 # Crear red de Docker si no existe
 echo "🌐 Verificando red Docker..."
 if ! docker network inspect traefik-public >/dev/null 2>&1; then
