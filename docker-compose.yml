@@ -1,71 +1,67 @@
+# ==========================================
+# DEFINICIONES REUTILIZABLES (YAML Anchors)
+# ==========================================
+x-traefik-common: &traefik-common
+  image: traefik:v3.5
+  container_name: traefik
+  restart: unless-stopped
+  security_opt:
+    - no-new-privileges:true
+  healthcheck:
+    test: ["CMD", "traefik", "healthcheck", "--ping"]
+    start_period: 5s
+    interval: 10s
+    timeout: 3s
+    retries: 3
+  networks:
+    - traefik-public
+  labels:
+    - "traefik.enable=true"
+    - "traefik.http.routers.dashboard.rule=Host(`traefik.${DEV_DOMAIN:-localhost}`)"
+    - "traefik.http.routers.dashboard.service=api@internal"
+    - "traefik.http.routers.dashboard.entrypoints=web"
+
+# Volúmenes base (comunes en dev y prod)
+x-traefik-volumes: &traefik-volumes
+  - /var/run/docker.sock:/var/run/docker.sock:ro
+  - ./config/traefik.yml:/etc/traefik/traefik.yml:ro
+  - ./config/dynamic:/etc/traefik/dynamic:ro
+  - ./logs:/var/log/traefik
+  - ./certs:/etc/traefik/certs
+
+# Variables de entorno base
+x-traefik-env: &traefik-env
+  TZ: ${TZ:-UTC}
+  TRAEFIK_API_INSECURE: "false"
+  TRAEFIK_METRICS_PROMETHEUS: "true"
+
 services:
   traefik:
-    image: traefik:v3.5
-    container_name: traefik
-    restart: unless-stopped
+    <<: *traefik-common
     
-    # Permisos necesarios para que Traefik escuche en puertos privilegiados
-    security_opt:
-      - no-new-privileges:true
-    
-    # Puertos expuestos
+    # ==========================================
+    # PUERTOS (modificables por override)
+    # ==========================================
     ports:
-      - "${HTTP_PORT:-80}:80"       # HTTP
-      - "${HTTPS_PORT:-443}:443"     # HTTPS
-      - "${DASHBOARD_PORT:-8080}:8080"  # Dashboard (solo para desarrollo/localhost)
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+      - "${DASHBOARD_PORT:-8080}:8080"
     
-    # Variables de entorno
+    # ==========================================
+    # VARIABLES DE ENTORNO BASE
+    # ==========================================
     environment:
-      - TZ=${TZ:-UTC}
+      <<: *traefik-env
     
     # ==========================================
-    # HEALTH CHECK - CRITICAL PARA PRODUCTION
+    # VOLÚMENES BASE (modificables por override)
     # ==========================================
-    # Monitorea que Traefik realmente está funcionando
-    # Si falla, Docker puede reiniciar el contenedor automáticamente
-    healthcheck:
-      # Verificar que Traefik responde en puerto 8080 (API)
-      test: ["CMD", "traefik", "healthcheck", "--ping"]
-      # Esperar 5 segundos antes de hacer first check
-      start_period: 5s
-      # Intervalo entre health checks
-      interval: 10s
-      # Timeout máximo para el comando
-      timeout: 3s
-      # Número de fallos consecutivos para marcar como unhealthy
-      retries: 3
-    
-    # Volúmenes compartidos entre dev y prod
-    volumes:
-      # Socket de Docker para detectar contenedores automáticamente
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      
-      # Configuración estática (se carga al iniciar)
-      - ./config/traefik.yml:/etc/traefik/traefik.yml:ro
-      
-      # Configuración dinámica (se recarga automáticamente)
-      - ./config/dynamic:/etc/traefik/dynamic:ro
-      
-      # Logs
-      - ./logs:/var/log/traefik
-      
-      # Certificados
-      - ./certs:/etc/traefik/certs
-    
-    # Redes
-    networks:
-      - traefik-public
-    
-    # Labels para el dashboard
-    labels:
-      - "traefik.enable=true"
-      
-      # Dashboard
-      - "traefik.http.routers.dashboard.rule=Host(`traefik.${DEV_DOMAIN:-localhost}`)"
-      - "traefik.http.routers.dashboard.service=api@internal"
-      - "traefik.http.routers.dashboard.entrypoints=web"
+    volumes: *traefik-volumes
 
-# Red externa que compartirán todos los proyectos
+# ==========================================
+# RED EXTERNA
+# ==========================================
+# Compartida por todos los servicios/ambientes
 networks:
   traefik-public:
     name: ${TRAEFIK_NETWORK:-traefik-public}
