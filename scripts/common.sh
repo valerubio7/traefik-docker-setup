@@ -110,40 +110,7 @@ detect_environment() {
     fi
 }
 
-validate_domain_format() {
-    local domain="$1"
-    local domain_regex='^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$'
-    
-    domain=$(echo "$domain" | tr '[:upper:]' '[:lower:]')
-    
-    if [[ ! $domain =~ $domain_regex ]]; then
-        return 1
-    fi
-    
-    if [ "$domain" = "localhost" ] || [[ $domain == *.localhost ]]; then
-        return 1
-    fi
-    
-    if [[ $domain == *:* ]]; then
-        return 1
-    fi
-    
-    if [[ $domain == http://* ]] || [[ $domain == https://* ]]; then
-        return 1
-    fi
-    
-    return 0
-}
 
-validate_bcrypt_hash() {
-    local hash="$1"
-    
-    if [[ $hash =~ ^\$2[ayb]\$.{56}$ ]] || [[ $hash =~ ^\$apr1\$.{37}$ ]]; then
-        return 0
-    fi
-    
-    return 1
-}
 
 create_docker_network() {
     local network_name="$1"
@@ -326,22 +293,4 @@ confirm_action() {
     fi
 }
 
-get_public_ip() {
-    curl -s https://api.ipify.org 2>/dev/null || \
-    curl -s https://ifconfig.me 2>/dev/null || \
-    curl -s https://icanhazip.com 2>/dev/null || \
-    echo "unavailable"
-}
 
-is_port_available() {
-    local port="$1"
-    
-    if command -v netstat &> /dev/null; then
-        ! netstat -tuln 2>/dev/null | grep -q ":${port} "
-    elif command -v ss &> /dev/null; then
-        ! ss -tuln 2>/dev/null | grep -q ":${port} "
-    else
-        (echo >/dev/tcp/127.0.0.1/$port) &>/dev/null
-        [ $? -ne 0 ]
-    fi
-}

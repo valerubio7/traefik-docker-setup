@@ -1,6 +1,11 @@
+# Development-specific middlewares for relaxed security and CORS
+
 http:
   middlewares:
-    dev-cors:
+    # ============================================================================
+    # CORS - Allow all origins (convenient for local development)
+    # ============================================================================
+    cors:
       headers:
         accessControlAllowMethods:
           - GET
@@ -16,55 +21,25 @@ http:
           - "Authorization"
           - "X-Requested-With"
         accessControlAllowCredentials: false
-        accessControlMaxAge: 100
+        accessControlMaxAge: 3600
         addVaryHeader: true
 
-    dev-debug-headers:
+    # ============================================================================
+    # DEBUG HEADERS - Mark responses as coming from dev
+    # ============================================================================
+    debug-headers:
       headers:
         customResponseHeaders:
           X-Debug-Environment: "development"
           X-Debug-Server: "traefik-dev"
-        customRequestHeaders:
-          Cache-Control: "no-cache, no-store, must-revalidate"
 
-    dev-security:
+    # ============================================================================
+    # RELAXED SECURITY - No HTTPS enforcement in dev (use on specific routes only)
+    # ============================================================================
+    relaxed-security:
       headers:
         frameDeny: false
         contentTypeNosniff: true
         browserXssFilter: true
         sslRedirect: false
-        contentSecurityPolicy: "default-src 'self' 'unsafe-inline' 'unsafe-eval' *"
         referrerPolicy: "strict-origin-when-cross-origin"
-
-    dev-logging:
-      headers:
-        customResponseHeaders:
-          X-Request-ID: "{{.RequestID}}"
-
-    dev-security-strict:
-      headers:
-        frameDeny: true
-        contentTypeNosniff: true
-        browserXssFilter: true
-        forceSTSHeader: false
-        referrerPolicy: "strict-origin-when-cross-origin"
-        contentSecurityPolicy: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
-
-    dev-cors-strict:
-      headers:
-        accessControlAllowMethods:
-          - GET
-          - POST
-          - PUT
-          - DELETE
-          - PATCH
-        accessControlAllowOriginList:
-          - "http://localhost:3000"
-          - "http://localhost:8000"
-          - "http://127.0.0.1:3000"
-        accessControlAllowHeaders:
-          - "Content-Type"
-          - "Authorization"
-        accessControlAllowCredentials: false
-        accessControlMaxAge: 3600
-        addVaryHeader: true

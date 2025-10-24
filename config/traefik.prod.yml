@@ -1,6 +1,9 @@
+# Production-specific Traefik configuration
+
 global:
   sendAnonymousUsage: false
 
+# HTTP redirects to HTTPS
 entryPoints:
   web:
     address: ":80"
@@ -16,44 +19,44 @@ entryPoints:
     http:
       tls:
         certResolver: "letsencrypt"
-        domains:
-          - main: "example.com"
-            sans:
-              - "*.example.com"
-      middlewares:
-        - security-headers@file
 
+# Extend providers from base
 providers:
   docker:
-    endpoint: "tcp://socket-proxy:2375"
+    endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
     network: "traefik-public"
     watch: true
-    swarmMode: false
-    defaultRule: "Host(`{{ normalize .Name }}.example.com`)"
 
   file:
     directory: "/etc/traefik/dynamic"
     watch: true
 
+# Let's Encrypt certificate resolver
 certificatesResolvers:
   letsencrypt:
     acme:
-      email: "tu-email@example.com"
+      email: "{{ env \"LETSENCRYPT_EMAIL\" }}"
       storage: "/etc/traefik/certs/prod/acme.json"
       httpChallenge:
         entryPoint: web
 
+# Production: Secure API without debug
 api:
   dashboard: true
   debug: false
   insecure: false
 
+ping:
+  entryPoint: "traefik"
+
+# Production: Minimal logging (errors and warnings only)
 log:
   level: "WARN"
   filePath: "/var/log/traefik/prod/traefik.log"
   format: "json"
 
+# Production: JSON access logs with minimal fields
 accessLog:
   filePath: "/var/log/traefik/prod/access.log"
   format: "json"
@@ -62,32 +65,3 @@ accessLog:
     statusCodes:
       - "400-499"
       - "500-599"
-    retryAttempts: true
-    minDuration: 0
-  fields:
-    general:
-      defaultMode: "drop"
-      names:
-        ClientAddr: "keep"
-        ClientHost: "keep"
-        ClientPort: "keep"
-        ClientUsername: "keep"
-        DownstreamStatus: "keep"
-        DownstreamContentSize: "keep"
-        Duration: "keep"
-        FrontendName: "keep"
-        Hostname: "keep"
-        Method: "keep"
-        Path: "keep"
-        Port: "keep"
-        Protocol: "keep"
-        RequestCount: "keep"
-        Timestamp: "keep"
-        TraceID: "keep"
-    headers:
-      defaultMode: "drop"
-      names:
-        User-Agent: "keep"
-        Referer: "keep"
-        Accept: "keep"
-        Accept-Language: "keep"

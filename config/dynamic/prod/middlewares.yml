@@ -1,28 +1,29 @@
+# Production-specific middlewares for strict security
+
 http:
   middlewares:
-    prod-security:
+    # ============================================================================
+    # SECURITY HEADERS - Strict security policies for production
+    # ============================================================================
+    security-headers-prod:
       headers:
         frameDeny: true
         customFrameOptionsValue: "SAMEORIGIN"
-        
         sslRedirect: true
         sslForceHost: true
-        
         stsSeconds: 31536000
         stsIncludeSubdomains: true
         stsPreload: true
-        
         contentTypeNosniff: true
         browserXssFilter: true
         forceSTSHeader: true
-        
         referrerPolicy: "strict-origin-when-cross-origin"
-        
         permissionsPolicy: "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
-        
-        contentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'"
 
-    prod-cors:
+    # ============================================================================
+    # CORS - Restrictive for production (customize per application)
+    # ============================================================================
+    cors-prod:
       headers:
         accessControlAllowMethods:
           - GET
@@ -33,13 +34,6 @@ http:
         accessControlAllowOriginList:
           - "https://example.com"
           - "https://www.example.com"
-        accessControlAllowHeaders:
-          - "Content-Type"
-          - "Authorization"
-          - "X-Requested-With"
-        accessControlAllowCredentials: true
-        accessControlMaxAge: 3600
-        addVaryHeader: true
         accessControlAllowHeaders:
           - "Content-Type"
           - "Authorization"

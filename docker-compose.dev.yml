@@ -1,39 +1,25 @@
 services:
   traefik:
+    # Dev ports: Dashboard accessible without TLS on localhost:8080
     ports:
       - "127.0.0.1:8080:8080"
       - "80:80"
       - "443:443"
-
+    
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./config/traefik.yml:/etc/traefik/traefik.yml:ro
-      - ./config/dynamic:/etc/traefik/dynamic:ro
-      - ./logs:/var/log/traefik
-      - ./certs:/etc/traefik/certs
-      
       - ./config/traefik.dev.yml:/etc/traefik/traefik.dev.yml:ro
       - ./config/dynamic/dev:/etc/traefik/dynamic/dev:ro
       - ./certs/dev:/etc/traefik/certs/dev:ro
     
     environment:
-      - TZ=${TZ:-UTC}
       - TRAEFIK_API_INSECURE=true
-      - ENVIRONMENT=dev
       - TRAEFIK_LOG_LEVEL=${LOG_LEVEL:-DEBUG}
     
     labels:
-      - "com.traefik.environment=dev"
-      
       - "traefik.enable=true"
       - "traefik.http.routers.dashboard.rule=Host(`traefik.${DEV_DOMAIN:-localhost}`)"
       - "traefik.http.routers.dashboard.service=api@internal"
       - "traefik.http.routers.dashboard.entrypoints=web"
-      - "traefik.http.routers.dashboard.middlewares="
-      
-      - "traefik.http.routers.api.rule=Host(`traefik.${DEV_DOMAIN:-localhost}`)"
-      - "traefik.http.routers.api.service=api@internal"
-      - "traefik.http.routers.api.entrypoints=web"
     
     command:
       - "--configFile=/etc/traefik/traefik.dev.yml"

@@ -1,27 +1,17 @@
+# Production TLS configuration
+# Let's Encrypt certificates are managed by the certificatesResolvers in traefik.prod.yml
+# This file configures TLS options and cipher suites
+
 tls:
   options:
-    prod-default:
+    default:
       minVersion: "VersionTLS12"
-      maxVersion: "VersionTLS13"
-      cipherSuites:
-        - "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
-        - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
-        - "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
-        - "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"
-        - "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305"
-        - "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305"
-        - "TLS_AES_128_GCM_SHA256"
-        - "TLS_AES_256_GCM_SHA384"
-        - "TLS_CHACHA20_POLY1305_SHA256"
-      curvePreferences:
-        - "CurveP521"
-        - "CurveP384"
       sniStrict: true
       alpnProtocols:
         - "h2"
         - "http/1.1"
 
-    prod-modern:
+    modern:
       minVersion: "VersionTLS13"
       sniStrict: true
       alpnProtocols:

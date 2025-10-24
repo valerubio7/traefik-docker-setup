@@ -1,48 +1,42 @@
-x-traefik-common: &traefik-common
-  image: traefik:v3.5
-  container_name: traefik
-  restart: unless-stopped
-  security_opt:
-    - no-new-privileges:true
-  healthcheck:
-    test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/ping"]
-    start_period: 5s
-    interval: 10s
-    timeout: 3s
-    retries: 3
-  networks:
-    - traefik-public
-  labels:
-    - "traefik.enable=true"
-    - "traefik.http.routers.dashboard.rule=Host(`traefik.${DEV_DOMAIN:-localhost}`)"
-    - "traefik.http.routers.dashboard.service=api@internal"
-    - "traefik.http.routers.dashboard.entrypoints=web"
-
-x-traefik-volumes: &traefik-volumes
-  - /var/run/docker.sock:/var/run/docker.sock:ro
-  - ./config/traefik.yml:/etc/traefik/traefik.yml:ro
-  - ./config/dynamic:/etc/traefik/dynamic:ro
-  - ./logs:/var/log/traefik
-  - ./certs:/etc/traefik/certs
-
-x-traefik-env: &traefik-env
-  TZ: ${TZ:-UTC}
-  TRAEFIK_API_INSECURE: "false"
-  TRAEFIK_METRICS_PROMETHEUS: "true"
-
 services:
   traefik:
-    <<: *traefik-common
-
+    image: traefik:v3.5
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    
+    # Healthcheck to verify service is ready
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/ping"]
+      start_period: 5s
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    
+    networks:
+      - traefik-public
+    
     ports:
       - "${HTTP_PORT:-80}:80"
       - "${HTTPS_PORT:-443}:443"
-
+    
     environment:
-      <<: *traefik-env
-
-    volumes: *traefik-volumes
-
+      - TZ=${TZ:-UTC}
+    
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./config/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./config/dynamic:/etc/traefik/dynamic:ro
+      - ./logs:/var/log/traefik
+      - ./certs:/etc/traefik/certs
+    
+    labels:
+      - "traefik.enable=true"
+    
+    # Config file is set in dev/prod overrides via 'command'
+    command:
+      - "--configFile=/etc/traefik/traefik.yml"
 
 networks:
   traefik-public:

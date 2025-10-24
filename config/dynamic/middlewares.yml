@@ -1,5 +1,8 @@
 http:
   middlewares:
+    # ============================================================================
+    # SECURITY HEADERS
+    # ============================================================================
     security-headers:
       headers:
         frameDeny: true
@@ -11,26 +14,10 @@ http:
         browserXssFilter: true
         referrerPolicy: "strict-origin-when-cross-origin"
         permissionsPolicy: "geolocation=(), microphone=(), camera=()"
-        customFrameOptionsValue: "SAMEORIGIN"
 
-    cors-headers:
-      headers:
-        accessControlAllowMethods:
-          - GET
-          - POST
-          - PUT
-          - DELETE
-          - PATCH
-          - OPTIONS
-        accessControlAllowOriginList:
-          - "*"
-        accessControlAllowHeaders:
-          - "Content-Type"
-          - "Authorization"
-          - "X-Requested-With"
-        accessControlMaxAge: 100
-        addVaryHeader: true
-
+    # ============================================================================
+    # RATE LIMITING
+    # ============================================================================
     rate-limit:
       rateLimit:
         average: 30
@@ -43,30 +30,29 @@ http:
         burst: 20
         period: 1s
 
-    rate-limit-public:
-      rateLimit:
-        average: 5
-        burst: 10
-        period: 1s
-        sourceCriterion:
-          ipStrategy:
-            depth: 1
-
-    rate-limit-internal:
-      rateLimit:
-        average: 50
-        burst: 100
-        period: 1s
-
+    # ============================================================================
+    # COMPRESSION
+    # ============================================================================
     compression:
       compress:
         excludedContentTypes:
           - "text/event-stream"
 
+    # ============================================================================
+    # RETRIES
+    # ============================================================================
     retry:
       retry:
         attempts: 3
         initialInterval: 100ms
+
+    # ============================================================================
+    # REDIRECTIONS
+    # ============================================================================
+    redirect-to-https:
+      redirectScheme:
+        scheme: https
+        permanent: true
 
     redirect-non-www:
       redirectRegex:
@@ -74,11 +60,9 @@ http:
         replacement: "https://${1}"
         permanent: true
 
-    auth-basic:
-      basicAuth:
-        users:
-          - "admin:$apr1$..."
-
+    # ============================================================================
+    # IP FILTERING
+    # ============================================================================
     ip-whitelist-local:
       ipWhiteList:
         sourceRange:
@@ -86,18 +70,3 @@ http:
           - "192.168.0.0/16"
           - "10.0.0.0/8"
           - "172.16.0.0/12"
-
-    api-headers:
-      headers:
-        customResponseHeaders:
-          X-Custom-Response-Header: "value"
-        customRequestHeaders:
-          X-Custom-Request-Header: "value"
-
-    buffering:
-      buffering:
-        maxRequestBodyBytes: 10485760
-        memRequestBodyBytes: 2097152
-        maxResponseBodyBytes: 10485760
-        memResponseBodyBytes: 2097152
-        retryExpression: "IsNetworkError() && Attempts() < 2"

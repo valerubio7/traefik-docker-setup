@@ -1,6 +1,7 @@
 global:
   sendAnonymousUsage: false
 
+# Standard entry points for HTTP/HTTPS
 entryPoints:
   web:
     address: ":80"
@@ -10,6 +11,7 @@ entryPoints:
     http:
       tls: {}
 
+# Docker provider - auto-detects containers with traefik labels
 providers:
   docker:
     endpoint: "unix:///var/run/docker.sock"
@@ -17,28 +19,15 @@ providers:
     network: "traefik-public"
     watch: true
 
+  # Dynamic config files for reloadable configuration
   file:
     directory: "/etc/traefik/dynamic"
     watch: true
 
+# API and Dashboard (security depends on environment override)
 api:
   dashboard: true
-  debug: false
 
+# Health check endpoint
 ping:
   entryPoint: "traefik"
-
-log:
-  level: "INFO"
-  filePath: "/var/log/traefik/traefik.log"
-  format: "common"
-
-accessLog:
-  filePath: "/var/log/traefik/access.log"
-  format: "common"
-  bufferingSize: 100
-  filters:
-    statusCodes:
-      - "200-299"
-      - "400-499"
-      - "500-599"

@@ -1,279 +1,376 @@
-# Traefik Global - Reverse Proxy
+# Traefik - Reverse Proxy & Load Balancer
 
-Configuración centralizada de Traefik para todos los proyectos (desarrollo y producción).
+Clean, educational configuration of Traefik v3 for development and production environments.
 
-## 🚀 Inicio Rápido
+## Quick Start
 
-### Desarrollo
+### Development
 
 ```bash
-# 1. Clonar/copiar este directorio
+# Clone this repository
 cd traefik
 
-# 2. Copiar y configurar variables de entorno
+# Create and configure environment
 cp .env.example .env
-# Editar .env con tus valores
 
-# 3. Dar permisos a los scripts
+# Give execute permissions to scripts
 chmod +x scripts/*.sh
 
-# 4. Iniciar Traefik
+# Start Traefik in development
 ./scripts/start-dev.sh
 
-# 5. Acceder al dashboard
+# Access dashboard
 # http://traefik.localhost:8080
 ```
 
-### Producción
+### Production
 
 ```bash
-# 1. Configurar .env con valores de producción
+# Configure production environment
 nano .env
-# IMPORTANTE: 
-# - Cambiar PROD_DOMAIN
-# - Configurar LETSENCRYPT_EMAIL
-# - Generar password hash: htpasswd -nb admin tu_password
+# Set: PROD_DOMAIN, LETSENCRYPT_EMAIL, TRAEFIK_DASHBOARD_PASSWORD
 
-# 2. Iniciar Traefik
+# Generate secure basic auth password
+# htpasswd -nb admin your_secure_password
+
+# Start Traefik in production
 ./scripts/start-prod.sh
 
-# 3. Acceder al dashboard
-# https://traefik.tudominio.com (requiere autenticación)
+# Access dashboard
+# https://traefik.yourdomain.com (requires authentication)
 ```
 
-## 📋 Requisitos
+## Requirements
 
-- Docker y Docker Compose instalados
-- Puertos 80, 443 y 8080 disponibles
-- Para producción: dominio apuntando a tu servidor
+- Docker & Docker Compose
+- Ports 80, 443 available
+- For production: domain pointing to your server
 
-## 🏗️ Estructura del Proyecto
+## Project Structure
 
 ```
 traefik/
 ├── config/
-│   ├── traefik.yml          # Configuración base
-│   ├── traefik.dev.yml      # Override para desarrollo
-│   ├── traefik.prod.yml     # Override para producción
-│   └── dynamic/             # Configuración que se recarga automáticamente
-│       ├── middlewares.yml  # Middlewares reutilizables
-│       ├── tls.yml          # Configuración TLS
-│       ├── dev/             # Específico de desarrollo
-│       └── prod/            # Específico de producción
-├── certs/                   # Certificados SSL
-├── logs/                    # Logs separados por ambiente
-└── scripts/                 # Scripts de utilidad
+│   ├── traefik.yml              # Base configuration (common settings)
+│   ├── traefik.dev.yml          # Development overrides
+│   ├── traefik.prod.yml         # Production overrides
+│   └── dynamic/                 # Auto-reloaded configuration
+│       ├── middlewares.yml      # Shared middlewares
+│       ├── routers.yml          # Reference (use Docker labels instead)
+│       ├── tls.yml              # TLS options
+│       ├── dev/                 # Development-specific
+│       │   ├── certificates.yml # Self-signed certs config
+│       │   └── middlewares.yml  # Dev middlewares (CORS permissive)
+│       └── prod/                # Production-specific
+│           ├── certificates.yml # Let's Encrypt TLS options
+│           └── middlewares.yml  # Prod middlewares (strict security)
+├── certs/                       # SSL certificates
+├── logs/                        # Separate logs per environment
+├── scripts/                     # Utility scripts
+└── docker-compose*.yml          # Service definitions
 ```
 
-## 🔧 Scripts Disponibles
+## Configuration Philosophy
 
-| Script | Descripción |
-|--------|-------------|
-| `./scripts/start-dev.sh` | Inicia Traefik en desarrollo |
-| `./scripts/start-prod.sh` | Inicia Traefik en producción |
-| `./scripts/stop.sh` | Detiene Traefik |
-| `./scripts/logs.sh` | Ver logs en tiempo real |
-| `./scripts/generate-dev-certs.sh` | Genera certificados SSL para desarrollo |
+**Minimal by default**: Only essential settings in the base config.
 
-## 🔗 Conectar Proyectos a Traefik
+**Clear separation**: Dev and production overrides are explicit and self-documenting.
 
-### Paso 1: Conectar a la red
+**Docker labels preferred**: Services define their routes via labels, not static files.
 
-En el `docker-compose.yml` de tu proyecto:
+**Educational comments**: Each section explains its purpose.
+
+## Key Concepts
+
+### Entry Points
+
+- **web** (80): HTTP traffic
+- **websecure** (443): HTTPS traffic
+
+In production, port 80 automatically redirects to HTTPS.
+
+### Providers
+
+- **Docker**: Auto-discovers containers with `traefik.enable=true` labels
+- **File**: Loads dynamic config from `/etc/traefik/dynamic` (auto-reloads on changes)
+
+### Development vs Production
+
+| Aspect | Development | Production |
+|--------|-------------|-----------|
+| Dashboard | http://traefik.localhost:8080 (insecure) | https://traefik.domain (auth required) |
+| Certificates | Self-signed (auto-generated) | Let's Encrypt (auto-renewed) |
+| Logging | DEBUG (verbose) | WARN (errors only) |
+| CORS | Allow all origins | Restrict to configured origins |
+| HTTP redirect | None (direct access) | HTTP→HTTPS redirect |
+| Rate limiting | Relaxed | Enabled for dashboard |
+
+## Connecting Services to Traefik
+
+### Basic Service (Development)
 
 ```yaml
 services:
-  tu-app:
-    image: tu-imagen
+  myapp:
+    image: my-image:latest
     networks:
       - traefik-public
     labels:
-      # Habilitar Traefik para este contenedor
       - "traefik.enable=true"
-      
-      # Router HTTP
-      - "traefik.http.routers.tu-app.rule=Host(`tu-app.localhost`)"
-      - "traefik.http.routers.tu-app.entrypoints=web"
-      
-      # Servicio (puerto interno del contenedor)
-      - "traefik.http.services.tu-app.loadbalancer.server.port=3000"
+      - "traefik.http.routers.myapp.rule=Host(`myapp.localhost`)"
+      - "traefik.http.routers.myapp.entrypoints=web"
+      - "traefik.http.services.myapp.loadbalancer.server.port=3000"
 
 networks:
   traefik-public:
     external: true
 ```
 
-### Paso 2: Para HTTPS en producción
+### Secure Service with HTTPS (Production)
+
+```yaml
+services:
+  myapp:
+    image: my-image:latest
+    networks:
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      
+      # HTTPS route
+      - "traefik.http.routers.myapp-secure.rule=Host(`myapp.yourdomain.com`)"
+      - "traefik.http.routers.myapp-secure.entrypoints=websecure"
+      - "traefik.http.routers.myapp-secure.tls=true"
+      - "traefik.http.routers.myapp-secure.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.myapp-secure.middlewares=security-headers-prod"
+      
+      # HTTP redirect to HTTPS
+      - "traefik.http.routers.myapp.rule=Host(`myapp.yourdomain.com`)"
+      - "traefik.http.routers.myapp.entrypoints=web"
+      - "traefik.http.routers.myapp.middlewares=redirect-to-https"
+      
+      # Service backend
+      - "traefik.http.services.myapp.loadbalancer.server.port=3000"
+
+networks:
+  traefik-public:
+    external: true
+```
+
+### With Middlewares
 
 ```yaml
 labels:
-  - "traefik.enable=true"
+  # Apply multiple middlewares
+  - "traefik.http.routers.myapp-secure.middlewares=security-headers-prod,compression,rate-limit"
   
-  # Router HTTPS
-  - "traefik.http.routers.tu-app-secure.rule=Host(`tu-app.tudominio.com`)"
-  - "traefik.http.routers.tu-app-secure.entrypoints=websecure"
-  - "traefik.http.routers.tu-app-secure.tls=true"
-  - "traefik.http.routers.tu-app-secure.tls.certresolver=letsencrypt"
-  
-  # Router HTTP (redirige a HTTPS)
-  - "traefik.http.routers.tu-app.rule=Host(`tu-app.tudominio.com`)"
-  - "traefik.http.routers.tu-app.entrypoints=web"
-  - "traefik.http.routers.tu-app.middlewares=redirect-to-https"
-  
-  # Servicio
-  - "traefik.http.services.tu-app.loadbalancer.server.port=3000"
-  
-  # Middlewares opcionales
-  - "traefik.http.routers.tu-app-secure.middlewares=security-headers,compression"
+  # Or define custom middleware inline (development)
+  - "traefik.http.middlewares.myapp-cors.headers.accesscontrolalloworiginlist=http://localhost:3000"
+  - "traefik.http.routers.myapp.middlewares=myapp-cors"
 ```
 
-### Paso 3: Usar middlewares
+## Available Middlewares
 
-```yaml
-labels:
-  # Aplicar múltiples middlewares
-  - "traefik.http.routers.tu-app-secure.middlewares=security-headers,compression,rate-limit"
-  
-  # O crear middleware personalizado
-  - "traefik.http.middlewares.tu-app-cors.headers.accesscontrolalloworiginlist=https://tudominio.com"
-  - "traefik.http.routers.tu-app-secure.middlewares=tu-app-cors"
-```
+### Global (all environments)
 
-## 📝 Middlewares Disponibles
+- **security-headers** - HSTS, X-Frame-Options, CSP, etc.
+- **rate-limit** - 30 req/s average, 60 burst
+- **rate-limit-strict** - 10 req/s average, 20 burst
+- **compression** - gzip/brotli compression
+- **retry** - Retry failed requests (3 attempts)
+- **redirect-to-https** - HTTP → HTTPS
+- **redirect-non-www** - www → non-www redirect
+- **ip-whitelist-local** - Allow only local IPs
 
-Los siguientes middlewares están pre-configurados en `config/dynamic/middlewares.yml`:
+### Development (config/dynamic/dev/middlewares.yml)
 
-### Seguridad
-- `security-headers` - Headers de seguridad HTTP
-- `ip-whitelist-local` - Restricción por IP local
+- **cors** - Allow all origins (permissive for local dev)
+- **debug-headers** - Mark responses as from dev environment
+- **relaxed-security** - No HTTPS enforcement
 
-### Performance
-- `compression` - Compresión gzip/brotli
-- `rate-limit` - Limitador de requests (100/s)
-- `rate-limit-strict` - Limitador estricto (10/s)
+### Production (config/dynamic/prod/middlewares.yml)
 
-### CORS
-- `cors-headers` - CORS permisivo (dev)
-- `prod-cors` - CORS restrictivo (prod)
+- **security-headers-prod** - Strict security headers + CSP
+- **cors-prod** - Restrictive CORS (configure origins per service)
 
-### Otros
-- `redirect-to-https` - Redirección HTTP → HTTPS
-- `redirect-non-www` - Redirección www → non-www
-- `retry` - Reintentos automáticos
-- `buffering` - Para uploads grandes
+## SSL/TLS Certificates
 
-## 🔐 Configuración SSL/TLS
+### Development
 
-### Desarrollo
-- Certificados autofirmados generados automáticamente
-- Tu navegador mostrará advertencia (es normal)
-- Válido para `localhost` y `*.localhost`
+- Self-signed certificates for `localhost` and `*.localhost`
+- Auto-generated by `scripts/generate-dev-certs.sh`
+- Browser shows warning (expected, click "proceed anyway")
 
-### Producción
-- Let's Encrypt automático
-- Renovación automática cada 60 días
-- Soporte para wildcard certificates (`*.tudominio.com`)
+### Production
 
-## 📊 Dashboard
+- Let's Encrypt certificates (fully automated)
+- Stored in `certs/prod/acme.json` (chmod 600)
+- Auto-renewed every 60 days
+- Supports wildcard certificates (`*.yourdomain.com`)
 
-### Desarrollo
-- URL: `http://traefik.localhost:8080`
-- Sin autenticación
-- API en modo debug
-
-### Producción
-- URL: `https://traefik.tudominio.com`
-- Requiere autenticación (usuario/password del `.env`)
-- Solo accesible por HTTPS
-
-## 🐛 Troubleshooting
-
-### El dashboard no carga
+## Scripts
 
 ```bash
-# Verificar que Traefik está corriendo
+./scripts/start-dev.sh              # Start Traefik in development mode
+./scripts/start-prod.sh             # Start Traefik in production mode (with confirmation)
+./scripts/stop.sh                   # Stop Traefik (auto-detects environment)
+./scripts/logs.sh                   # View real-time logs
+./scripts/generate-dev-certs.sh     # Generate self-signed certificates
+./scripts/common.sh                 # Shared utility functions (source in other scripts)
+```
+
+## Common Tasks
+
+### View Logs
+
+```bash
+./scripts/logs.sh
+
+# Or directly
+docker compose logs -f traefik
+```
+
+### Verify Container Status
+
+```bash
 docker ps | grep traefik
-
-# Ver logs
-./scripts/logs.sh
-
-# Verificar red
-docker network ls | grep traefik-public
+docker inspect traefik --format '{{.State.Health.Status}}'
 ```
 
-### Mi proyecto no aparece en Traefik
+### Check Network
 
 ```bash
-# Verificar que el contenedor tiene las labels correctas
-docker inspect tu-contenedor | grep traefik
-
-# Verificar que está en la red correcta
-docker inspect tu-contenedor | grep traefik-public
-
-# Ver logs de Traefik
-./scripts/logs.sh
+docker network ls | grep traefik
+docker network inspect traefik-public
 ```
 
-### Error de permisos en acme.json
+### Restart Traefik
+
+```bash
+./scripts/stop.sh
+./scripts/start-dev.sh   # or start-prod.sh
+```
+
+### Fix Certificate Permissions (production)
 
 ```bash
 chmod 600 certs/prod/acme.json
 ```
 
-### Let's Encrypt no genera certificados
+## Troubleshooting
 
-1. Verificar que el dominio apunta a tu servidor
-2. Verificar que los puertos 80 y 443 están abiertos
-3. Verificar el email en `.env`
-4. Ver logs: `./scripts/logs.sh -e`
-
-## 📚 Ejemplos Completos
-
-Ver la carpeta `networks/README.md` para ejemplos completos de:
-- Aplicación simple
-- API con CORS
-- Microservicios
-- Aplicaciones con autenticación
-
-## 🔄 Actualizar Traefik
+### Dashboard not accessible
 
 ```bash
-# Detener
-./scripts/stop.sh
+# Check if container is running
+docker ps | grep traefik
 
-# Actualizar imagen
-docker pull traefik:v3.5
+# View recent logs
+docker compose logs traefik --tail=50
 
-# Iniciar nuevamente
-./scripts/start-dev.sh  # o start-prod.sh
+# Verify network exists
+docker network inspect traefik-public
 ```
 
-## 📖 Recursos
+### Service not appearing in Traefik
 
-- [Documentación oficial de Traefik](https://doc.traefik.io/traefik/)
-- [Middlewares disponibles](https://doc.traefik.io/traefik/middlewares/overview/)
+1. Verify container has correct labels: `docker inspect mycontainer | grep traefik`
+2. Verify container is on `traefik-public` network: `docker network inspect traefik-public`
+3. Check service health: `docker ps mycontainer`
+4. View Traefik logs: `./scripts/logs.sh`
+
+### Let's Encrypt certificate not generating (production)
+
+1. Verify domain points to your server
+2. Ensure ports 80 and 443 are open: `netstat -tlnp | grep ':80\|:443'`
+3. Check email in `.env`
+4. View logs for ACME errors: `./scripts/logs.sh | grep acme`
+
+### Port conflicts
+
+```bash
+# Find what's using port 80/443
+netstat -tlnp | grep ':80\|:443'
+ss -tlnp | grep ':80\|:443'
+
+# Kill the process or use different ports in .env
+```
+
+## Security Best Practices
+
+### Development
+
+- Dashboard accessible only on localhost
+- Self-signed certificates (browser warnings expected)
+- CORS permissive (all origins allowed)
+- Debug logging enabled
+
+### Production
+
+- Dashboard requires authentication
+- Let's Encrypt certificates (valid for all browsers)
+- CORS restrictive (only configured origins)
+- Only errors/warnings in logs
+- Rate limiting on dashboard
+- Strict security headers
+- All services redirect HTTP → HTTPS
+
+## Environment Variables
+
+Create `.env` from `.env.example` and configure:
+
+**Common**
+- `TZ` - Timezone (default: UTC)
+- `HTTP_PORT` - HTTP port (default: 80)
+- `HTTPS_PORT` - HTTPS port (default: 443)
+- `DEV_DOMAIN` - Development domain (default: localhost)
+- `LOG_LEVEL` - Log level for dev (default: DEBUG)
+
+**Production only**
+- `PROD_DOMAIN` - Your production domain (required)
+- `LETSENCRYPT_EMAIL` - Email for certificate notifications (required)
+- `TRAEFIK_DASHBOARD_USER` - Dashboard username (default: admin)
+- `TRAEFIK_DASHBOARD_PASSWORD` - Basic auth password hash (required)
+
+Generate password hash:
+
+```bash
+htpasswd -nb admin your_password
+# Output: admin:$apr1$...
+```
+
+## Performance Tuning
+
+### For high traffic
+
+1. Increase rate limits in `config/dynamic/middlewares.yml`
+2. Adjust Docker engine limits
+3. Use `buffering` middleware for large requests/responses
+4. Consider dedicated networks for different service groups
+
+### For low resource environments
+
+1. Reduce log buffering size
+2. Disable compression for small responses
+3. Use simpler TLS options (avoid modern profile)
+
+## Resources
+
+- [Official Traefik Documentation](https://doc.traefik.io/traefik/)
+- [Traefik Middlewares](https://doc.traefik.io/traefik/middlewares/overview/)
 - [Docker Provider](https://doc.traefik.io/traefik/providers/docker/)
-- [Let's Encrypt](https://doc.traefik.io/traefik/https/acme/)
+- [Let's Encrypt Integration](https://doc.traefik.io/traefik/https/acme/)
+- [TLS/HTTPS Configuration](https://doc.traefik.io/traefik/https/overview/)
 
-## ⚠️ Notas de Seguridad
+## Tips for Learning
 
-### Desarrollo
-- Dashboard sin autenticación (solo localhost)
-- Certificados autofirmados
-- Logs en modo DEBUG
-- CORS permisivo
+1. **Start with development**: Use `./scripts/start-dev.sh` to get familiar with the basics
+2. **Read the comments**: YAML files include explanations
+3. **Use Docker labels**: Easier to understand than static config files
+4. **Monitor logs**: `./scripts/logs.sh` shows everything
+5. **Experiment with middlewares**: Add/remove to see effects immediately
+6. **Check official docs**: For advanced features not covered here
 
-### Producción
-- Dashboard con autenticación
-- Certificados Let's Encrypt
-- Logs optimizados (WARN/ERROR)
-- CORS restrictivo
-- Rate limiting activado
-- Headers de seguridad estrictos
+## License & Attribution
 
-## 📞 Soporte
-
-Si encuentras problemas:
-1. Revisa los logs: `./scripts/logs.sh`
-2. Verifica la configuración en `.env`
-3. Consulta la documentación oficial de Traefik
+This is a clean, educational reference implementation of Traefik v3 configuration.

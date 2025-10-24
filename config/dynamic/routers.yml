@@ -1,9 +1,7 @@
-http:
-  routers:
-  services:
-    noop:
-      loadBalancer:
-        servers:
-          - url: "http://localhost"
+# Routers can be defined here (file provider) or via Docker container labels (recommended)
+# This file is kept for reference and future shared route configurations
 
-  middlewares:
+http:
+  routers: {}
+  services: {}
+  middlewares: {}

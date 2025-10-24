@@ -3,13 +3,15 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
 source "$SCRIPT_DIR/common.sh"
 
 cleanup() {
     local exit_code=$?
     if [ $exit_code -ne 0 ]; then
         log_error "Error al detener Traefik (código: $exit_code)"
-        echo "   Ejecuta 'docker compose logs traefik' para más información"
+        echo "   Intenta: docker stop traefik"
     fi
     exit $exit_code
 }
@@ -22,53 +24,26 @@ validate_docker
 
 if is_container_running traefik; then
     log_info "Contenedor encontrado: traefik"
-    
-    ENVIRONMENT=$(detect_environment)
-    log_info "Ambiente detectado: $ENVIRONMENT"
     echo ""
     
-    case "$ENVIRONMENT" in
-        dev)
-            log_step "Ejecutando: docker compose -f docker-compose.yml -f docker-compose.dev.yml down"
-            if docker compose -f docker-compose.yml -f docker-compose.dev.yml down 2>&1; then
-                log_success "Traefik (dev) detenido correctamente"
-            else
-                log_warning "docker compose down retornó estado de error"
-                echo "   Intentando detener contenedor directamente..."
-                docker stop traefik 2>/dev/null || true
-            fi
-            ;;
-        prod)
-            log_step "Ejecutando: docker compose -f docker-compose.yml -f docker-compose.prod.yml down"
-            if docker compose -f docker-compose.yml -f docker-compose.prod.yml down 2>&1; then
-                log_success "Traefik (prod) detenido correctamente"
-            else
-                log_warning "docker compose down retornó estado de error"
-                echo "   Intentando detener contenedor directamente..."
-                docker stop traefik 2>/dev/null || true
-            fi
-            ;;
-        *)
-            log_warning "No se pudo detectar ambiente, usando down genérico"
-            if docker compose down 2>&1; then
-                log_success "Traefik detenido correctamente (modo genérico)"
-            else
-                docker stop traefik 2>/dev/null || true
-                log_success "Traefik detenido (fuerza)"
-            fi
-            ;;
-    esac
+    log_step "Deteniendo contenedor..."
+    if docker stop traefik 2>&1; then
+        log_success "Traefik detenido correctamente"
+    else
+        log_warning "Error al detener, intentando forzar..."
+        docker kill traefik 2>/dev/null || true
+    fi
 else
     log_info "Contenedor traefik no está corriendo"
 fi
 
+
 echo ""
 
 if is_container_running traefik; then
-    log_warning "Contenedor aún está corriendo"
-    echo "   Intenta: docker rm -f traefik"
+    log_warning "Contenedor aún está corriendo, intenta: docker kill traefik"
 else
-    log_success "Verificación: Contenedor no está activo"
+    log_success "Verificación: Contenedor detenido correctamente"
 fi
 
 echo ""
