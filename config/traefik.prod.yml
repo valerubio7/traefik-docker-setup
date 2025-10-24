@@ -70,6 +70,18 @@ certificatesResolvers:
 # ============================================
 # API y DASHBOARD (SEGURO en producción)
 # ============================================
+# ⚠️  SEGURIDAD EN PRODUCCIÓN:
+# 
+# El dashboard es SEGURO en producción porque:
+# ✓ insecure: false (requiere autenticación)
+# ✓ dashboard solo accesible a través de HTTPS + certificados válidos
+# ✓ puerto 8080 NO está expuesto en docker-compose.prod.yml
+# ✓ acceso autenticado a través de traefik.PROD_DOMAIN
+# ✓ usuario/password configurado en docker-compose.prod.yml
+#
+# ACCESO AL DASHBOARD:
+# • https://traefik.example.com (requiere usuario/password)
+# • puerto 8080 NO es accesible
 api:
   dashboard: true
   debug: false     # NO debug en producción

@@ -40,10 +40,22 @@ providers:
 # ============================================
 # API y DASHBOARD (modo inseguro para desarrollo)
 # ============================================
+# ⚠️  ADVERTENCIA SEGURIDAD:
+# El dashboard está configurado con insecure: true (sin autenticación)
+# Esto es SOLO válido para desarrollo con acceso restringido.
+# 
+# PROTECCIÓN IMPLEMENTADA:
+# ✓ docker-compose.dev.yml vincula puerto 8080 SOLO a 127.0.0.1
+# ✓ Port 8080 no es accesible desde la red (solo localhost)
+# ✓ NUNCA ejecutar así en producción
+#
+# ACCESO AL DASHBOARD:
+# • http://traefik.localhost:8080 (con bind en localhost)
+# • https://traefik.localhost:8080 (con advertencia de cert autofirmado)
 api:
   dashboard: true
   debug: true      # Muestra información extra para debugging
-  insecure: true   # Permite acceso sin autenticación (solo localhost)
+  insecure: true   # Permite acceso sin autenticación (protegido por bind a localhost)
 
 # ============================================
 # LOGGING (modo verbose para desarrollo)

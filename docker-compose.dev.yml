@@ -1,5 +1,18 @@
 services:
   traefik:
+    # ==========================================
+    # PUERTOS - Solo accesibles desde localhost
+    # ==========================================
+    # CRÍTICO SEGURIDAD: En desarrollo, exponer solo a localhost
+    # Evita que personas en la red accedan al dashboard sin autenticación
+    ports:
+      # Dashboard: Solo localhost (puerto 8080)
+      - "127.0.0.1:8080:8080"
+      # HTTP: Accessible desde cualquier interfaz (desarrollo necesita acceso)
+      - "80:80"
+      # HTTPS: Accessible desde cualquier interfaz
+      - "443:443"
+    
     # Añade volúmenes específicos de desarrollo
     volumes:
       # Configuración estática de desarrollo
