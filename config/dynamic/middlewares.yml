@@ -2,6 +2,17 @@
 # MIDDLEWARES GLOBALES
 # ============================================
 # Estos middlewares se pueden reutilizar en cualquier router
+#
+# ⚠️  SEGURIDAD EN DESARROLLO:
+# Los middlewares dev-* en config/dynamic/dev/middlewares.yml son PERMISIVOS
+# para facilitar debugging. SIEMPRE revisar antes de producción:
+#
+# • dev-cors: Permite "*" (todos los orígenes)
+# • dev-security: CSP permisivo ('unsafe-inline' 'unsafe-eval')
+# • dev-security-strict: Versión más similar a producción (testear con esto)
+# • dev-cors-strict: Orígenes específicos (para APIs críticas)
+#
+# Ver: config/dynamic/SECURITY_HEADERS_GUIDE.md
 
 http:
   middlewares:
