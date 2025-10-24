@@ -44,6 +44,9 @@ services:
     # OVERRIDE LABELS: Dashboard sin auth en dev
     # ==========================================
     labels:
+      # Label de identificación de ambiente
+      - "com.traefik.environment=dev"
+      
       # Dashboard sin autenticación en desarrollo (solo localhost)
       - "traefik.enable=true"
       - "traefik.http.routers.dashboard.rule=Host(`traefik.${DEV_DOMAIN:-localhost}`)"

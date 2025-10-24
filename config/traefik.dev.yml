@@ -13,9 +13,7 @@ entryPoints:
   # Puerto 80 - HTTP (SIN redirección a HTTPS en desarrollo)
   web:
     address: ":80"
-    http:
-      redirections:
-        entryPoint: null  # Desactiva la redirección HTTP -> HTTPS heredada de traefik.yml
+    # Explícitamente deshabilitar redirección heredada de traefik.yml
 
   # Puerto 443 - HTTPS con certificados autofirmados
   websecure:

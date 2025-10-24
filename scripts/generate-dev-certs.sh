@@ -82,10 +82,6 @@ if [ -f "$CERT_DIR/localhost.crt" ] && [ -f "$CERT_DIR/localhost.key" ]; then
         error "Certificado EXPIRADO hace $((-$DAYS_LEFT)) días"
         SHOULD_REGENERATE=true
         REGEN_REASON="certificado expirado"
-    elif [ $DAYS_LEFT -lt $DAYS_WARNING ]; then
-        warning "Certificado expira en $DAYS_LEFT días (< $DAYS_WARNING de umbral)"
-        SHOULD_REGENERATE=true
-        REGEN_REASON="próximo a expirar"
     else
         success "Certificado válido por $DAYS_LEFT días más"
         

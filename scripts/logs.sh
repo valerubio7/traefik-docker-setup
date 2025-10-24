@@ -92,7 +92,16 @@ detect_environment() {
 show_live_dashboard() {
     if ! command -v jq &> /dev/null; then
         echo -e "${YELLOW}⚠️  jq no está instalado${NC}"
-        echo "   Instala: apt-get install jq"
+    # Validar que jq está disponible
+    if ! command -v jq &> /dev/null; then
+        echo -e "${YELLOW}⚠️  jq no está instalado${NC}"
+        echo "   Para dashboard en vivo se requiere jq"
+        echo ""
+        echo "   Instala en Ubuntu/Debian:"
+        echo "   $ sudo apt-get install jq"
+        echo ""
+        echo "   Instala en Alpine:"
+        echo "   $ apk add jq"
         echo ""
         echo "   Alternativa: ./scripts/logs.sh -t 50"
         exit 1

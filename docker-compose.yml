@@ -8,7 +8,7 @@ x-traefik-common: &traefik-common
   security_opt:
     - no-new-privileges:true
   healthcheck:
-    test: ["CMD", "traefik", "healthcheck", "--ping"]
+    test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/ping"]
     start_period: 5s
     interval: 10s
     timeout: 3s

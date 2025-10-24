@@ -123,12 +123,49 @@ if [ "$COMPRESS" = "true" ]; then
         exit 1
     fi
 else
-    if jq empty "$BACKUP_FILE" 2>/dev/null; then
-        log_success "Integridad validada (JSON válido)"
-    else
+    # Validar que es JSON válido
+    if ! jq empty "$BACKUP_FILE" 2>/dev/null; then
         log_error "Backup JSON no es válido"
         rm "$BACKUP_FILE"
         exit 1
+    fi
+    
+    log_success "Integridad validada (JSON válido)"
+    
+    # Validar estructura del acme.json
+    CERT_COUNT=$(jq -r 'if type == "object" then .letsencrypt.Certificates // [] | length else 0 end' "$BACKUP_FILE" 2>/dev/null || echo "0")
+    
+    if [ "$CERT_COUNT" -eq "0" ]; then
+        log_warning "Backup no contiene certificados (archivo vacío o recién creado)"
+    else
+        log_success "Backup contiene $CERT_COUNT certificado(s)"
+        
+        # Verificar fechas de expiración de certificados
+        EXPIRING_SOON=0
+        for i in $(seq 0 $((CERT_COUNT - 1))); do
+            DOMAIN=$(jq -r ".letsencrypt.Certificates[$i].domain.main // \"unknown\"" "$BACKUP_FILE" 2>/dev/null)
+            CERT_PEM=$(jq -r ".letsencrypt.Certificates[$i].certificate // \"\"" "$BACKUP_FILE" 2>/dev/null)
+            
+            if [ -n "$CERT_PEM" ] && [ "$CERT_PEM" != "null" ]; then
+                # Extraer fecha de expiración del certificado
+                EXPIRY=$(echo "$CERT_PEM" | base64 -d 2>/dev/null | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)
+                
+                if [ -n "$EXPIRY" ]; then
+                    EXPIRY_EPOCH=$(date -d "$EXPIRY" +%s 2>/dev/null || echo "0")
+                    NOW_EPOCH=$(date +%s)
+                    DAYS_LEFT=$(( ($EXPIRY_EPOCH - $NOW_EPOCH) / 86400 ))
+                    
+                    if [ $DAYS_LEFT -lt 30 ]; then
+                        log_warning "Certificado $DOMAIN expira en $DAYS_LEFT días"
+                        EXPIRING_SOON=$((EXPIRING_SOON + 1))
+                    fi
+                fi
+            fi
+        done
+        
+        if [ $EXPIRING_SOON -gt 0 ]; then
+            log_warning "$EXPIRING_SOON certificado(s) expiran pronto. Considera renovarlos."
+        fi
     fi
 fi
 

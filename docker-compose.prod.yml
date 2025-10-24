@@ -68,6 +68,9 @@ services:
     # OVERRIDE LABELS: Dashboard protegido
     # ==========================================
     labels:
+      # Label de identificación de ambiente
+      - "com.traefik.environment=prod"
+      
       - "traefik.enable=true"
       
       # ==========================================
@@ -96,13 +99,14 @@ services:
       - "traefik.http.routers.dashboard-secure.middlewares=dashboard-ipwhitelist,dashboard-ratelimit,dashboard-auth,dashboard-security"
       
       # 1. IP WHITELIST - Solo IPs permitidas pueden acceder
-      - "traefik.http.middlewares.dashboard-ipwhitelist.ipwhitelist.sourcerange=127.0.0.1/32,10.0.0.0/8"
-      # sourcerange: IPs permitidas (localhost + redes internas)
-      # Agregar IPs oficina/VPN: 203.0.113.0/24
+      # IMPORTANTE: Configurar en .env con DASHBOARD_ALLOWED_IPS
+      # Ejemplo: DASHBOARD_ALLOWED_IPS=127.0.0.1/32,203.0.113.5/32,10.0.1.0/24
+      - "traefik.http.middlewares.dashboard-ipwhitelist.ipwhitelist.sourcerange=${DASHBOARD_ALLOWED_IPS:-127.0.0.1/32}"
+      # Por defecto solo localhost. Para acceso remoto, configurar IPs específicas en .env
       
       # 2. RATE LIMIT - Proteger contra fuerza bruta
       - "traefik.http.middlewares.dashboard-ratelimit.ratelimit.average=5"
-      # Máximo 5 requests por segundo
+      # Máximo 5 requests por segundo (suficiente para dashboard)
       - "traefik.http.middlewares.dashboard-ratelimit.ratelimit.burst=10"
       # Permite burst de 10 requests
       - "traefik.http.middlewares.dashboard-ratelimit.ratelimit.period=1s"
