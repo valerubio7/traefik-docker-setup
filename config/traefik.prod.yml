@@ -39,7 +39,17 @@ entryPoints:
 # ============================================
 providers:
   docker:
-    endpoint: "unix:///var/run/docker.sock"
+    # SEGURIDAD EN PRODUCCIÓN: Usar socket proxy en lugar de socket directo
+    # 
+    # ⚠️  CRÍTICO: No usar socket directo (/var/run/docker.sock) en producción
+    # Si Traefik es comprometido, atacante tiene acceso completo a Docker
+    # 
+    # Solución: Docker Socket Proxy (tecnativa/docker-socket-proxy)
+    # • Limita qué APIs puede acceder Traefik
+    # • Solo expone CONTAINERS, SERVICES, NETWORKS, EVENTS
+    # • Bloquea acceso a volúmenes, secretos, ejecución de comandos
+    # • Ejecutar primero: docker-compose -f docker-compose.socket-proxy.yml up -d
+    endpoint: "tcp://socket-proxy:2375"
     exposedByDefault: false
     network: "traefik-public"
     watch: true

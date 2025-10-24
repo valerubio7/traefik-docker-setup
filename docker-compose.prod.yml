@@ -14,6 +14,11 @@ services:
       # Certificados de Let's Encrypt (read-write porque se renuevan automáticamente)
       - ./certs/prod:/etc/traefik/certs/prod
     
+    # IMPORTANTE: En producción, conectar a socket-proxy (no socket de Docker directo)
+    networks:
+      - traefik-public
+      - traefik-proxy    # Red privada del socket proxy
+    
     # Variables de entorno específicas de producción
     environment:
       - ENVIRONMENT=prod
@@ -53,3 +58,15 @@ services:
     # Comando para usar la configuración de producción
     command:
       - "--configFile=/etc/traefik/traefik.prod.yml"
+
+# Redes compartidas
+networks:
+  # Red pública: para servicios (external, definida en docker-compose.yml base)
+  traefik-public:
+    external: true
+  
+  # Red privada: solo para socket proxy
+  # Nota: Esta red DEBE ser creada por docker-compose.socket-proxy.yml
+  traefik-proxy:
+    external: true
+    name: traefik-proxy
