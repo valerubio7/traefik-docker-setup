@@ -2,12 +2,18 @@
 # CERTIFICADOS DE PRODUCCIÓN
 # ============================================
 # Let's Encrypt maneja los certificados automáticamente
-# Este archivo configura opciones TLS para producción
+# Este archivo configura SOLO opciones TLS específicas de producción
+# Las opciones base (compatible, etc.) se cargan desde tls.yml
 
 tls:
-  # Opciones TLS estrictas para producción
+  # ==========================================
+  # OPCIONES TLS ESPECÍFICAS DE PRODUCCIÓN
+  # ==========================================
+  # CRÍTICO: SOLO "prod-default", no redefinir "default"
+  # El archivo tls.yml proporciona la configuración base
   options:
-    default:
+    # Configuración estricta por defecto para producción
+    prod-default:
       minVersion: "VersionTLS12"
       maxVersion: "VersionTLS13"
       cipherSuites:
@@ -30,14 +36,16 @@ tls:
         - "http/1.1"
 
     # Opción aún más estricta (solo TLS 1.3)
-    modern:
+    prod-modern:
       minVersion: "VersionTLS13"
       sniStrict: true
       alpnProtocols:
         - "h2"
         - "http/1.1"
 
-  # Store por defecto
-  # Let's Encrypt guardará certificados automáticamente en acme.json
-  # No es necesario configurar certificados manualmente aquí
-  # Los certificados se generan automáticamente vía el resolver 'letsencrypt'
+  # ==========================================
+  # ALMACÉN DE CERTIFICADOS POR DEFECTO
+  # ==========================================
+  # NOTA: Los certificados se generan automáticamente vía Let's Encrypt
+  # Se guardan en acme.json (configurado en traefik.prod.yml)
+  # No es necesario configurar certificados manuales aquí

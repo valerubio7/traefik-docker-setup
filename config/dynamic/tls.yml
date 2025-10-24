@@ -1,39 +1,19 @@
 # ============================================
-# CONFIGURACIÓN TLS/SSL
+# CONFIGURACIÓN TLS/SSL - BASE
 # ============================================
+# NOTA: Este archivo SOLO contiene opciones TLS comunes
+# No incluye certificados (evita conflictos con dev/prod)
+# Los certificados se cargan en:
+# - dev/certificates.yml (desarrollo)
+# - prod/certificates.yml (producción)
 
 tls:
   # ==========================================
-  # OPCIONES TLS
+  # OPCIONES TLS COMPARTIDAS
   # ==========================================
+  # Las opciones específicas por entorno se definen en dev/prod
+  # Opciones comunes reutilizables:
   options:
-    # Configuración por defecto (segura y moderna)
-    default:
-      minVersion: "VersionTLS12"  # Mínimo TLS 1.2
-      cipherSuites:
-        # Cifrados modernos y seguros
-        - "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
-        - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
-        - "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
-        - "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"
-        - "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305"
-        - "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305"
-      curvePreferences:
-        - "CurveP521"
-        - "CurveP384"
-      sniStrict: true
-      alpnProtocols:
-        - "h2"      # HTTP/2
-        - "http/1.1"
-
-    # Configuración moderna (solo TLS 1.3)
-    modern:
-      minVersion: "VersionTLS13"
-      sniStrict: true
-      alpnProtocols:
-        - "h2"
-        - "http/1.1"
-
     # Configuración compatible (para clientes antiguos)
     # Usar solo si es absolutamente necesario
     compatible:
@@ -43,11 +23,3 @@ tls:
         - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
         - "TLS_RSA_WITH_AES_128_GCM_SHA256"
         - "TLS_RSA_WITH_AES_256_GCM_SHA384"
-
-  # ==========================================
-  # STORES (almacenes de certificados)
-  # ==========================================
-  # NOTA: El certificado por defecto se define en:
-  # - config/dynamic/dev/certificates.yml (desarrollo)
-  # - Let's Encrypt/acme.json (producción)
-  # No es necesario definir stores aquí para evitar conflictos
