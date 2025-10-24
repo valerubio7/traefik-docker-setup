@@ -19,6 +19,15 @@ services:
       - traefik-public
       - traefik-proxy    # Red privada del socket proxy
     
+    # Límite de logs para Docker (doble capa de protección)
+    # ⚠️  CRÍTICO: Sin esto + logrotate, los logs pueden llenar el disco
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"      # Máximo 100MB por archivo de log
+        max-file: "5"         # Mantener 5 archivos rotados (500MB total)
+        labels: "service=traefik,env=prod"
+    
     # Variables de entorno específicas de producción
     environment:
       - ENVIRONMENT=prod

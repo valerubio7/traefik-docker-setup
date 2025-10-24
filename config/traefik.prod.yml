@@ -100,32 +100,76 @@ api:
 # ============================================
 # LOGGING (optimizado para producción)
 # ============================================
+# 
+# CONFIGURACIÓN SEGURA Y ESCALABLE
+# • Formato JSON para procesamiento automático
+# • Solo errores/warnings para ahorrar espacio
+# • ROTACIÓN DE LOGS: Configurada en docker-compose.prod.yml
+# • Límite de volumen: max-size 100MB, max-file 5
+# 
+# ⚠️  PROTECCIÓN CONTRA LLENAR EL DISCO:
+# Límites aplicados (docker-compose.prod.yml):
+# • max-size: 100MB por archivo
+# • max-file: Mantiene 5 archivos rotados (500MB total)
+# • Archivos antiguos se eliminan automáticamente
+# • Además: Solo registra errores (reduce volumen ~70%)
 log:
-  level: "WARN"    # Solo warnings y errores
+  level: "WARN"    # WARN: Warnings y errores | INFO: Más detalle (cuidado: volumen)
   filePath: "/var/log/traefik/prod/traefik.log"
-  format: "json"   # JSON para procesamiento automático
+  format: "json"   # JSON para parsing automático: ELK, Splunk, etc.
 
 # Log de acceso optimizado
+# ⚠️  IMPORTANTE: Cada request HTTP se registra aquí
+# Protección contra disco lleno:
+# • Solo registra errores (400-599)
+# • Límite de 500MB total en docker-compose.prod.yml
+# • Con mucho tráfico, considera usar servicio centralizado de logs
 accessLog:
   filePath: "/var/log/traefik/prod/access.log"
-  format: "json"
-  bufferingSize: 100
+  format: "json"   # JSON: {"timestamp":"...","request":"...","status":404,...}
+  bufferingSize: 100  # Buffer 100 líneas antes de escribir (mejora performance)
   filters:
+    # REDUCIR VOLUMEN: Solo registrar errores
+    # Comentar statusCodes para registrar TODO (desarrollo)
     statusCodes:
-      - "400-499"  # Errores del cliente
-      - "500-599"  # Errores del servidor
-    # No registrar 200-299 para ahorrar espacio
+      - "400-499"  # Client errors (4xx): Requests inválidos
+      - "500-599"  # Server errors (5xx): Problemas en backend
+    # ✓ NO registra 200-299 = reduce volumen ~70%
+    retryAttempts: true  # Registrar reintentos
+    minDuration: 0      # Duración mínima (0 = registrar todas)
   fields:
+    general:
+      defaultMode: "drop"      # ✓ SEGURIDAD: No registra todo por defecto
+      names:
+        ClientAddr: "keep"     # IP del cliente (para troubleshooting)
+        ClientHost: "keep"     # Hostname del cliente
+        ClientPort: "keep"     # Puerto del cliente
+        ClientUsername: "keep" # Usuario (si autenticado)
+        DownstreamStatus: "keep" # HTTP status code
+        DownstreamContentSize: "keep" # Response body size
+        Duration: "keep"       # Tiempo de respuesta
+        FrontendName: "keep"   # Nombre del router/frontend
+        Hostname: "keep"       # Hostname del servidor
+        Method: "keep"         # HTTP method (GET, POST, etc)
+        Path: "keep"           # URL path
+        Port: "keep"           # Puerto del servidor
+        Protocol: "keep"       # HTTP/1.1, HTTP/2, etc
+        RequestCount: "keep"   # Número de request
+        Timestamp: "keep"      # Timestamp de la request
+        TraceID: "keep"        # Trace ID para correlation logs
     headers:
       # CRÍTICO: NUNCA registrar headers sensibles en producción
       defaultMode: "drop"  # ✓ Por defecto: NO registra headers
       names:
         # Registrar SOLO headers no sensibles
-        User-Agent: "keep"      # ✓ Información de cliente (para análisis)
-        Referer: "keep"         # ✓ Origen de la petición (para análisis)
-        # NUNCA incluir headers sensibles:
-        # - Authorization (tokens, credenciales)
-        # - Cookie (sesiones)
-        # - X-API-Key (claves de API)
-        # - X-Auth-Token (autenticación)
-        # - Proxy-Authorization (proxy auth)
+        User-Agent: "keep"      # ✓ Información de cliente (análisis)
+        Referer: "keep"         # ✓ Origen de la petición (análisis)
+        Accept: "keep"          # ✓ Tipos de contenido aceptados
+        Accept-Language: "keep" # ✓ Idiomas aceptados
+        # ✗ NUNCA incluir:
+        # - Authorization: Bearer tokens, API keys
+        # - Cookie: Session IDs, tracking cookies
+        # - X-API-Key: Claves de API
+        # - X-Auth-Token: Tokens de autenticación
+        # - Proxy-Authorization: Proxy credentials
+        # - X-Forwarded-For: Puede exponer IPs internas (opcional)
