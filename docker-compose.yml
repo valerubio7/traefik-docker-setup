@@ -18,6 +18,23 @@ services:
     environment:
       - TZ=${TZ:-UTC}
     
+    # ==========================================
+    # HEALTH CHECK - CRITICAL PARA PRODUCTION
+    # ==========================================
+    # Monitorea que Traefik realmente está funcionando
+    # Si falla, Docker puede reiniciar el contenedor automáticamente
+    healthcheck:
+      # Verificar que Traefik responde en puerto 8080 (API)
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      # Esperar 5 segundos antes de hacer first check
+      start_period: 5s
+      # Intervalo entre health checks
+      interval: 10s
+      # Timeout máximo para el comando
+      timeout: 3s
+      # Número de fallos consecutivos para marcar como unhealthy
+      retries: 3
+    
     # Volúmenes compartidos entre dev y prod
     volumes:
       # Socket de Docker para detectar contenedores automáticamente
