@@ -37,18 +37,47 @@ services:
     
     # Labels para dashboard protegido en producción
     labels:
-      # Dashboard protegido con autenticación
+      # ==========================================
+      # DASHBOARD - AUTENTICACIÓN + RATE LIMIT + IP WHITELIST
+      # ==========================================
+      
+      # Router HTTPS (seguro)
       - "traefik.http.routers.dashboard-secure.rule=Host(`traefik.${PROD_DOMAIN}`)"
       - "traefik.http.routers.dashboard-secure.service=api@internal"
       - "traefik.http.routers.dashboard-secure.entrypoints=websecure"
       - "traefik.http.routers.dashboard-secure.tls=true"
       - "traefik.http.routers.dashboard-secure.tls.certresolver=letsencrypt"
       
-      # Middleware de autenticación básica
-      - "traefik.http.routers.dashboard-secure.middlewares=dashboard-auth"
-      - "traefik.http.middlewares.dashboard-auth.basicauth.users=${TRAEFIK_DASHBOARD_USER}:${TRAEFIK_DASHBOARD_PASSWORD}"
+      # Middlewares de seguridad en cadena
+      # Orden: IP Whitelist → Rate Limit → Auth → Security Headers
+      - "traefik.http.routers.dashboard-secure.middlewares=dashboard-ipwhitelist,dashboard-ratelimit,dashboard-auth,dashboard-security"
       
-      # Redirección HTTP -> HTTPS
+      # 1. IP WHITELIST - Solo IPs permitidas pueden acceder
+      # Reemplazar IPs según tu infraestructura
+      - "traefik.http.middlewares.dashboard-ipwhitelist.ipwhitelist.sourcerange=127.0.0.1/32,10.0.0.0/8"
+      # sourcerange: IPs permitidas (localhost + redes internas)
+      # Agregar IPs oficina/VPN: 203.0.113.0/24
+      
+      # 2. RATE LIMIT - Proteger contra fuerza bruta
+      - "traefik.http.middlewares.dashboard-ratelimit.ratelimit.average=5"
+      # Máximo 5 requests por segundo (suficiente para humanos)
+      - "traefik.http.middlewares.dashboard-ratelimit.ratelimit.burst=10"
+      # Permite burst de 10 requests
+      - "traefik.http.middlewares.dashboard-ratelimit.ratelimit.period=1s"
+      
+      # 3. AUTENTICACIÓN BÁSICA
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=${TRAEFIK_DASHBOARD_USER}:${TRAEFIK_DASHBOARD_PASSWORD}"
+      # Usuario/password desde .env (hasheado con bcrypt)
+      
+      # 4. SECURITY HEADERS
+      - "traefik.http.middlewares.dashboard-security.headers.customFrameOptionsValue=DENY"
+      # X-Frame-Options: DENY (no iframe)
+      - "traefik.http.middlewares.dashboard-security.headers.customResponseHeaders.X-Content-Type-Options=nosniff"
+      - "traefik.http.middlewares.dashboard-security.headers.customResponseHeaders.X-XSS-Protection=1; mode=block"
+      - "traefik.http.middlewares.dashboard-security.headers.customResponseHeaders.Strict-Transport-Security=max-age=31536000; includeSubDomains"
+      # HSTS: forzar HTTPS por 1 año
+      
+      # Router HTTP (redirección)
       - "traefik.http.routers.dashboard-http.rule=Host(`traefik.${PROD_DOMAIN}`)"
       - "traefik.http.routers.dashboard-http.entrypoints=web"
       - "traefik.http.routers.dashboard-http.middlewares=redirect-to-https"
