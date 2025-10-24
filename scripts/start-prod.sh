@@ -17,19 +17,41 @@ fi
 # Verificar variables críticas
 source .env
 
+# ==========================================
+# VALIDAR VARIABLES DE ENTORNO CRÍTICAS
+# ==========================================
+VALIDATION_ERRORS=0
+
+# Validar PROD_DOMAIN
 if [ -z "$PROD_DOMAIN" ] || [ "$PROD_DOMAIN" = "example.com" ]; then
     echo "❌ Error: PROD_DOMAIN no está configurado correctamente en .env"
-    exit 1
+    VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
 fi
 
+# Validar LETSENCRYPT_EMAIL
 if [ -z "$LETSENCRYPT_EMAIL" ] || [ "$LETSENCRYPT_EMAIL" = "tu-email@example.com" ]; then
     echo "❌ Error: LETSENCRYPT_EMAIL no está configurado correctamente en .env"
-    exit 1
+    VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
 fi
 
+# Validar TRAEFIK_DASHBOARD_PASSWORD
 if [ -z "$TRAEFIK_DASHBOARD_PASSWORD" ] || [ "$TRAEFIK_DASHBOARD_PASSWORD" = "admin" ]; then
     echo "❌ Error: TRAEFIK_DASHBOARD_PASSWORD debe ser un hash seguro"
     echo "   Genera uno con: htpasswd -nb admin tu_password_seguro"
+    VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+fi
+
+# Validar TRAEFIK_DASHBOARD_USER
+if [ -z "$TRAEFIK_DASHBOARD_USER" ]; then
+    echo "❌ Error: TRAEFIK_DASHBOARD_USER no está definido en .env"
+    VALIDATION_ERRORS=$((VALIDATION_ERRORS + 1))
+fi
+
+# Si hay errores de validación, detener
+if [ $VALIDATION_ERRORS -gt 0 ]; then
+    echo ""
+    echo "❌ Se encontraron $VALIDATION_ERRORS error(s) de configuración"
+    echo "   Por favor, revisa .env y corrige los valores"
     exit 1
 fi
 
@@ -113,6 +135,8 @@ if docker ps | grep -q traefik; then
     echo ""
     echo "🔐 Let's Encrypt:"
     echo "   Los certificados se generarán automáticamente en la primera petición"
+    echo "   Email configurado: $LETSENCRYPT_EMAIL"
+    echo "   Dominio: $PROD_DOMAIN"
     echo "   Verifica logs: ./scripts/logs.sh"
     echo ""
     echo "📝 Ver logs en tiempo real:"
@@ -120,6 +144,9 @@ if docker ps | grep -q traefik; then
     echo ""
     echo "🛑 Detener Traefik:"
     echo "   ./scripts/stop.sh"
+    echo ""
+    echo "🔐 Validar permisos:"
+    echo "   ./scripts/validate-perms.sh"
 else
     echo "❌ Error: Traefik no se inició correctamente"
     echo "   Ver logs: docker compose logs traefik"
