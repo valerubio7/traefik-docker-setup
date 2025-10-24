@@ -1,21 +1,5 @@
-# ============================================
-# CONFIGURACIÓN TLS/SSL - BASE
-# ============================================
-# NOTA: Este archivo SOLO contiene opciones TLS comunes
-# No incluye certificados (evita conflictos con dev/prod)
-# Los certificados se cargan en:
-# - dev/certificates.yml (desarrollo)
-# - prod/certificates.yml (producción)
-
 tls:
-  # ==========================================
-  # OPCIONES TLS COMPARTIDAS
-  # ==========================================
-  # Las opciones específicas por entorno se definen en dev/prod
-  # Opciones comunes reutilizables:
   options:
-    # Configuración compatible (para clientes antiguos)
-    # Usar solo si es absolutamente necesario
     compatible:
       minVersion: "VersionTLS11"
       cipherSuites:

@@ -1,66 +1,39 @@
 services:
   traefik:
-    # ==========================================
-    # OVERRIDE PUERTOS: Exponer solo localhost
-    # ==========================================
-    # CRÍTICO SEGURIDAD: En desarrollo, exponer solo a localhost
-    # Evita que personas en la red accedan al dashboard sin autenticación
     ports:
-      # Dashboard: Solo localhost (puerto 8080)
       - "127.0.0.1:8080:8080"
-      # HTTP: Accesible desde cualquier interfaz (desarrollo necesita acceso)
       - "80:80"
-      # HTTPS: Accesible desde cualquier interfaz
       - "443:443"
-    
-    # ==========================================
-    # OVERRIDE VOLÚMENES: Agregar específicos de dev
-    # ==========================================
-    # Nota: Usar forma extendida para agregar, no reemplazar
+
     volumes:
-      # Base (heredada)
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./config/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./config/dynamic:/etc/traefik/dynamic:ro
       - ./logs:/var/log/traefik
       - ./certs:/etc/traefik/certs
       
-      # Específicos de DESARROLLO
       - ./config/traefik.dev.yml:/etc/traefik/traefik.dev.yml:ro
       - ./config/dynamic/dev:/etc/traefik/dynamic/dev:ro
-      - ./logs/dev:/var/log/traefik/dev
       - ./certs/dev:/etc/traefik/certs/dev:ro
     
-    # ==========================================
-    # OVERRIDE VARIABLES DE ENTORNO: Dev-specific
-    # ==========================================
     environment:
       - TZ=${TZ:-UTC}
-      - TRAEFIK_API_INSECURE=true  # Solo para desarrollo
+      - TRAEFIK_API_INSECURE=true
       - ENVIRONMENT=dev
       - TRAEFIK_LOG_LEVEL=${LOG_LEVEL:-DEBUG}
     
-    # ==========================================
-    # OVERRIDE LABELS: Dashboard sin auth en dev
-    # ==========================================
     labels:
-      # Label de identificación de ambiente
       - "com.traefik.environment=dev"
       
-      # Dashboard sin autenticación en desarrollo (solo localhost)
       - "traefik.enable=true"
       - "traefik.http.routers.dashboard.rule=Host(`traefik.${DEV_DOMAIN:-localhost}`)"
       - "traefik.http.routers.dashboard.service=api@internal"
       - "traefik.http.routers.dashboard.entrypoints=web"
       - "traefik.http.routers.dashboard.middlewares="
       
-      # Habilitar API en modo inseguro (solo para desarrollo)
       - "traefik.http.routers.api.rule=Host(`traefik.${DEV_DOMAIN:-localhost}`)"
       - "traefik.http.routers.api.service=api@internal"
       - "traefik.http.routers.api.entrypoints=web"
     
-    # ==========================================
-    # OVERRIDE COMANDO: Usar config de desarrollo
-    # ==========================================
     command:
       - "--configFile=/etc/traefik/traefik.dev.yml"

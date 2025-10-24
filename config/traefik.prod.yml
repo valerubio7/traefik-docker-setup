@@ -1,16 +1,7 @@
-# ============================================
-# TRAEFIK - CONFIGURACIÓN DE PRODUCCIÓN
-# ============================================
-# Esta configuración sobrescribe traefik.yml para producción
-
 global:
   sendAnonymousUsage: false
 
-# ============================================
-# ENTRYPOINTS
-# ============================================
 entryPoints:
-  # Puerto 80 - HTTP (redirige a HTTPS)
   web:
     address: ":80"
     http:
@@ -18,42 +9,26 @@ entryPoints:
         entryPoint:
           to: websecure
           scheme: https
-          permanent: true  # 301 redirect
+          permanent: true
 
-  # Puerto 443 - HTTPS
   websecure:
     address: ":443"
     http:
       tls:
-        certResolver: "letsencrypt"  # Usa Let's Encrypt
+        certResolver: "letsencrypt"
         domains:
-          - main: "example.com"      # Cambiar por tu dominio
+          - main: "example.com"
             sans:
-              - "*.example.com"       # Wildcard para subdominios
-      # Habilitar HTTP/2 y HTTP/3
+              - "*.example.com"
       middlewares:
         - security-headers@file
 
-# ============================================
-# PROVIDERS
-# ============================================
 providers:
   docker:
-    # SEGURIDAD EN PRODUCCIÓN: Usar socket proxy en lugar de socket directo
-    # 
-    # ⚠️  CRÍTICO: No usar socket directo (/var/run/docker.sock) en producción
-    # Si Traefik es comprometido, atacante tiene acceso completo a Docker
-    # 
-    # Solución: Docker Socket Proxy (tecnativa/docker-socket-proxy)
-    # • Limita qué APIs puede acceder Traefik
-    # • Solo expone CONTAINERS, SERVICES, NETWORKS, EVENTS
-    # • Bloquea acceso a volúmenes, secretos, ejecución de comandos
-    # • Ejecutar primero: docker-compose -f docker-compose.socket-proxy.yml up -d
     endpoint: "tcp://socket-proxy:2375"
     exposedByDefault: false
     network: "traefik-public"
     watch: true
-    # Seguridad adicional en producción
     swarmMode: false
     defaultRule: "Host(`{{ normalize .Name }}.example.com`)"
 
@@ -61,115 +36,58 @@ providers:
     directory: "/etc/traefik/dynamic"
     watch: true
 
-# ============================================
-# CERTIFICADOS SSL - Let's Encrypt
-# ============================================
 certificatesResolvers:
   letsencrypt:
     acme:
-      email: "tu-email@example.com"  # Se toma de variable de entorno
+      email: "tu-email@example.com"
       storage: "/etc/traefik/certs/prod/acme.json"
-      # Usa el challenge HTTP (requiere puerto 80 abierto)
       httpChallenge:
         entryPoint: web
-      # Alternativamente, usa DNS challenge si tienes API de tu proveedor DNS
-      # dnsChallenge:
-      #   provider: cloudflare
-      #   delayBeforeCheck: 0
 
-# ============================================
-# API y DASHBOARD (SEGURO en producción)
-# ============================================
-# ⚠️  SEGURIDAD EN PRODUCCIÓN:
-# 
-# El dashboard es SEGURO en producción porque:
-# ✓ insecure: false (requiere autenticación)
-# ✓ dashboard solo accesible a través de HTTPS + certificados válidos
-# ✓ puerto 8080 NO está expuesto en docker-compose.prod.yml
-# ✓ acceso autenticado a través de traefik.PROD_DOMAIN
-# ✓ usuario/password configurado en docker-compose.prod.yml
-#
-# ACCESO AL DASHBOARD:
-# • https://traefik.example.com (requiere usuario/password)
-# • puerto 8080 NO es accesible
 api:
   dashboard: true
-  debug: false     # NO debug en producción
-  insecure: false  # NUNCA inseguro en producción
+  debug: false
+  insecure: false
 
-# ============================================
-# LOGGING (optimizado para producción)
-# ============================================
-# 
-# CONFIGURACIÓN SEGURA Y ESCALABLE
-# • Formato JSON para procesamiento automático
-# • Solo errores/warnings para ahorrar espacio
-# • ROTACIÓN DE LOGS: Configurada en docker-compose.prod.yml
-# • Límite de volumen: max-size 100MB, max-file 5
-# 
-# ⚠️  PROTECCIÓN CONTRA LLENAR EL DISCO:
-# Límites aplicados (docker-compose.prod.yml):
-# • max-size: 100MB por archivo
-# • max-file: Mantiene 5 archivos rotados (500MB total)
-# • Archivos antiguos se eliminan automáticamente
-# • Además: Solo registra errores (reduce volumen ~70%)
 log:
-  level: "WARN"    # WARN: Warnings y errores | INFO: Más detalle (cuidado: volumen)
+  level: "WARN"
   filePath: "/var/log/traefik/prod/traefik.log"
-  format: "json"   # JSON para parsing automático: ELK, Splunk, etc.
+  format: "json"
 
-# Log de acceso optimizado
-# ⚠️  IMPORTANTE: Cada request HTTP se registra aquí
-# Protección contra disco lleno:
-# • Solo registra errores (400-599)
-# • Límite de 500MB total en docker-compose.prod.yml
-# • Con mucho tráfico, considera usar servicio centralizado de logs
 accessLog:
   filePath: "/var/log/traefik/prod/access.log"
-  format: "json"   # JSON: {"timestamp":"...","request":"...","status":404,...}
-  bufferingSize: 100  # Buffer 100 líneas antes de escribir (mejora performance)
+  format: "json"
+  bufferingSize: 100
   filters:
-    # REDUCIR VOLUMEN: Solo registrar errores
-    # Comentar statusCodes para registrar TODO (desarrollo)
     statusCodes:
-      - "400-499"  # Client errors (4xx): Requests inválidos
-      - "500-599"  # Server errors (5xx): Problemas en backend
-    # ✓ NO registra 200-299 = reduce volumen ~70%
-    retryAttempts: true  # Registrar reintentos
-    minDuration: 0      # Duración mínima (0 = registrar todas)
+      - "400-499"
+      - "500-599"
+    retryAttempts: true
+    minDuration: 0
   fields:
     general:
-      defaultMode: "drop"      # ✓ SEGURIDAD: No registra todo por defecto
+      defaultMode: "drop"
       names:
-        ClientAddr: "keep"     # IP del cliente (para troubleshooting)
-        ClientHost: "keep"     # Hostname del cliente
-        ClientPort: "keep"     # Puerto del cliente
-        ClientUsername: "keep" # Usuario (si autenticado)
-        DownstreamStatus: "keep" # HTTP status code
-        DownstreamContentSize: "keep" # Response body size
-        Duration: "keep"       # Tiempo de respuesta
-        FrontendName: "keep"   # Nombre del router/frontend
-        Hostname: "keep"       # Hostname del servidor
-        Method: "keep"         # HTTP method (GET, POST, etc)
-        Path: "keep"           # URL path
-        Port: "keep"           # Puerto del servidor
-        Protocol: "keep"       # HTTP/1.1, HTTP/2, etc
-        RequestCount: "keep"   # Número de request
-        Timestamp: "keep"      # Timestamp de la request
-        TraceID: "keep"        # Trace ID para correlation logs
+        ClientAddr: "keep"
+        ClientHost: "keep"
+        ClientPort: "keep"
+        ClientUsername: "keep"
+        DownstreamStatus: "keep"
+        DownstreamContentSize: "keep"
+        Duration: "keep"
+        FrontendName: "keep"
+        Hostname: "keep"
+        Method: "keep"
+        Path: "keep"
+        Port: "keep"
+        Protocol: "keep"
+        RequestCount: "keep"
+        Timestamp: "keep"
+        TraceID: "keep"
     headers:
-      # CRÍTICO: NUNCA registrar headers sensibles en producción
-      defaultMode: "drop"  # ✓ Por defecto: NO registra headers
+      defaultMode: "drop"
       names:
-        # Registrar SOLO headers no sensibles
-        User-Agent: "keep"      # ✓ Información de cliente (análisis)
-        Referer: "keep"         # ✓ Origen de la petición (análisis)
-        Accept: "keep"          # ✓ Tipos de contenido aceptados
-        Accept-Language: "keep" # ✓ Idiomas aceptados
-        # ✗ NUNCA incluir:
-        # - Authorization: Bearer tokens, API keys
-        # - Cookie: Session IDs, tracking cookies
-        # - X-API-Key: Claves de API
-        # - X-Auth-Token: Tokens de autenticación
-        # - Proxy-Authorization: Proxy credentials
-        # - X-Forwarded-For: Puede exponer IPs internas (opcional)
+        User-Agent: "keep"
+        Referer: "keep"
+        Accept: "keep"
+        Accept-Language: "keep"

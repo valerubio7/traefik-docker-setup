@@ -1,37 +1,18 @@
-# ============================================
-# CERTIFICADOS DE DESARROLLO
-# ============================================
-# Certificados autofirmados para desarrollo local
-# Las opciones TLS base se cargan desde tls.yml
-
 tls:
-  # ==========================================
-  # CERTIFICADOS AUTOFIRMADOS
-  # ==========================================
   certificates:
-    # Certificado para localhost y *.localhost
     - certFile: "/etc/traefik/certs/dev/localhost.crt"
       keyFile: "/etc/traefik/certs/dev/localhost.key"
       stores:
         - default
 
-  # ==========================================
-  # OPCIONES TLS ESPECÍFICAS DE DESARROLLO
-  # ==========================================
-  # CRÍTICO: SOLO "dev", no redefinir "default"
   options:
-    # Configuración relajada para desarrollo
     dev:
       minVersion: "VersionTLS12"
-      sniStrict: false  # Menos estricto en desarrollo para debugging
+      sniStrict: false
       alpnProtocols:
         - "h2"
         - "http/1.1"
 
-  # ==========================================
-  # STORE CON CERTIFICADO POR DEFECTO
-  # ==========================================
-  # CRÍTICO: Solo desarrollo usa certificados autofirmados
   stores:
     default:
       defaultCertificate:

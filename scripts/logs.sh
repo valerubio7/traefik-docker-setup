@@ -1,10 +1,5 @@
 #!/bin/bash
 
-# ============================================
-# VER LOGS DE TRAEFIK CON MANEJO ROBUSTO
-# ============================================
-
-# Colores
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -12,9 +7,6 @@ BLUE='\033[0;34m'
 MAGENTA='\033[0;35m'
 NC='\033[0m' # No Color
 
-# ==========================================
-# FUNCIÓN: Ayuda
-# ==========================================
 show_help() {
     cat << 'EOF'
 📝 Herramienta de logs de Traefik
@@ -46,9 +38,6 @@ ATAJOS:
 EOF
 }
 
-# ==========================================
-# FUNCIÓN: Validar Docker
-# ==========================================
 validate_docker() {
     if ! command -v docker &> /dev/null; then
         echo -e "${RED}❌ Error: Docker no está instalado${NC}"
@@ -61,11 +50,7 @@ validate_docker() {
     fi
 }
 
-# ==========================================
-# FUNCIÓN: Detectar contenedor
-# ==========================================
 detect_environment() {
-    # Verificar que contenedor está corriendo
     if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^traefik$"; then
         echo -e "${RED}❌ Error: Contenedor traefik no está corriendo${NC}"
         echo "   Inicia Traefik primero:"
@@ -74,7 +59,6 @@ detect_environment() {
         exit 1
     fi
     
-    # Detectar ambiente
     if docker inspect traefik 2>/dev/null | grep -q "traefik.dev.yml"; then
         ENVIRONMENT="dev"
     elif docker inspect traefik 2>/dev/null | grep -q "traefik.prod.yml"; then
@@ -86,13 +70,9 @@ detect_environment() {
     LOG_PATH="logs/$ENVIRONMENT"
 }
 
-# ==========================================
-# FUNCIÓN: Dashboard en vivo
-# ==========================================
 show_live_dashboard() {
     if ! command -v jq &> /dev/null; then
         echo -e "${YELLOW}⚠️  jq no está instalado${NC}"
-    # Validar que jq está disponible
     if ! command -v jq &> /dev/null; then
         echo -e "${YELLOW}⚠️  jq no está instalado${NC}"
         echo "   Para dashboard en vivo se requiere jq"
@@ -117,7 +97,6 @@ show_live_dashboard() {
         echo -e "${MAGENTA}═══════════════════════════════════════════${NC}"
         echo ""
         
-        # Mostrar estado del contenedor
         docker ps -a --filter name=traefik --format "Contenedor: {{.Names}}\nEstado: {{.State}}\nImagen: {{.Image}}" 2>/dev/null
         
         echo ""
@@ -125,7 +104,6 @@ show_live_dashboard() {
         echo "📈 Estadísticas:"
         echo -e "${BLUE}───────────────────────────────────────────${NC}"
         
-        # CPU y Memoria
         if docker stats --no-stream traefik 2>/dev/null | tail -1; then
             :
         fi
@@ -144,9 +122,6 @@ show_live_dashboard() {
     done
 }
 
-# ==========================================
-# FUNCIÓN: Buscar en logs
-# ==========================================
 search_logs() {
     local pattern="$1"
     
@@ -174,18 +149,12 @@ search_logs() {
     fi
 }
 
-# ==========================================
-# VALIDAR PREREQUISITES
-# ==========================================
 validate_docker
 detect_environment
 
 echo -e "${BLUE}📊 Traefik - Ambiente: ${ENVIRONMENT}${NC}"
 echo ""
 
-# ==========================================
-# PROCESAR ARGUMENTOS
-# ==========================================
 case "$1" in
     -h|--help)
         show_help
@@ -207,7 +176,6 @@ case "$1" in
         echo -e "${RED}🚨 Logs de errores y advertencias${NC}"
         echo ""
         
-        # Buscar errores en logs del contenedor
         ERRORS=$(docker logs traefik 2>&1 | grep -iE "error|warn|fatal|panic" || echo "")
         
         if [ -z "$ERRORS" ]; then
@@ -216,7 +184,6 @@ case "$1" in
             echo "$ERRORS"
         fi
         
-        # También mostrar errores en archivos locales
         if [ -f "$LOG_PATH/access.log" ]; then
             echo ""
             echo -e "${RED}En access.log:${NC}"

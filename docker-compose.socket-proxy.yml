@@ -1,21 +1,4 @@
-###############################################################################
-# DOCKER SOCKET PROXY - PRODUCCIÓN
-#
-# Seguridad: Reemplaza acceso directo al socket de Docker con un proxy
-# limitado que solo expone lo que Traefik necesita.
-#
-# Este archivo debe ejecutarse ANTES de traefik en producción.
-# En desarrollo, usamos socket directo (menos crítico).
-#
-# Uso:
-# docker-compose -f docker-compose.socket-proxy.yml up -d
-#
-# Luego Traefik se conecta a:
-# - tcp://socket-proxy:2375 (en lugar de /var/run/docker.sock)
-###############################################################################
-
 services:
-  # Socket Proxy - Proxy seguro al socket de Docker
   socket-proxy:
     image: tecnativa/docker-socket-proxy:0.1.1
     container_name: traefik-socket-proxy
@@ -24,59 +7,43 @@ services:
     security_opt:
       - no-new-privileges:true
     
-    # Volumen: acceso al socket de Docker del host
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     
-    # Red local (solo Traefik se conecta)
     networks:
       - traefik-proxy
     
-    # Puerto: solo en red interna (no exponemos externamente)
     ports:
-      - "127.0.0.1:2375:2375"  # Solo localhost, nunca a 0.0.0.0
+      - "127.0.0.1:2375:2375"
     
-    # Control de acceso: qué APIs permite el proxy
     environment:
-      # ==========================================
-      # PERMITIR SOLO LO NECESARIO
-      # ==========================================
+      CONTAINERS: 1
+      SERVICES: 1
+      NETWORKS: 1
+      EVENTS: 1
       
-      # CRÍTICO: Docker Provider necesita estas APIs
-      CONTAINERS: 1        # Necesario: detectar contenedores
-      SERVICES: 1         # Necesario: detectar servicios Swarm
-      NETWORKS: 1         # Necesario: conectar redes
-      EVENTS: 1           # Necesario: reaccionar a cambios
+      VOLUMES: 0
+      IMAGES: 0
+      BUILD: 0
+      COMMIT: 0
+      CONFIGS: 0
+      SECRETS: 0
+      DISTRIBUTION: 0
+      NODES: 0
+      PLUGINS: 0
+      TASKS: 0
+      EXEC: 0
       
-      # BLOQUEADO: Traefik NO necesita estas
-      VOLUMES: 0          # NO necesita listar volúmenes
-      IMAGES: 0           # NO necesita acceso a imágenes
-      BUILD: 0            # NO necesita hacer build
-      COMMIT: 0           # NO necesita hacer commit
-      CONFIGS: 0          # NO necesita secretos Docker Swarm
-      SECRETS: 0          # NO necesita secretos Docker Swarm
-      DISTRIBUTION: 0     # NO necesita push/pull de registros
-      NODES: 0            # NO necesita info de nodos
-      PLUGINS: 0          # NO necesita gestionar plugins
-      TASKS: 0            # NO necesita listar tasks
-      EXEC: 0             # NO DEBE ejecutar comandos en contenedores
+      POST: 0      
+      PUT: 0              
+      DELETE: 0          
       
-      # CUIDADO: Estas APIs permiten extracción de información
-      POST: 0             # Deshabilitar POST (cambios)
-      PUT: 0              # Deshabilitar PUT (actualizaciones)
-      DELETE: 0           # Deshabilitar DELETE (eliminación)
-      
-      # ==========================================
-      # Información adicional
-      # ==========================================
-      INFO: 0             # NO necesita info del sistema
-      SYSTEM: 0           # NO necesita estadísticas
+      INFO: 0
+      SYSTEM: 0
 
-# Red privada para socket proxy y Traefik
 networks:
   traefik-proxy:
     name: traefik-proxy
     driver: bridge
-    # Solo accesible internamente
     driver_opts:
       com.docker.network.bridge.enable_ip_masquerade: "true"

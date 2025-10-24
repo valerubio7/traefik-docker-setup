@@ -1,20 +1,10 @@
 #!/bin/bash
 
-# ============================================
-# DETENER TRAEFIK CON MANEJO DE ERRORES
-# ============================================
-
 set -e
 
-# ==========================================
-# CARGAR FUNCIONES COMUNES
-# ==========================================
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
-# ==========================================
-# TRAP HANDLERS
-# ==========================================
 cleanup() {
     local exit_code=$?
     if [ $exit_code -ne 0 ]; then
@@ -28,19 +18,15 @@ trap cleanup EXIT
 
 show_banner "🛑 DETENER TRAEFIK"
 
-# Validar Docker disponible
 validate_docker
 
-# Detectar si contenedor está corriendo
 if is_container_running traefik; then
     log_info "Contenedor encontrado: traefik"
     
-    # Detectar ambiente por label
     ENVIRONMENT=$(detect_environment)
     log_info "Ambiente detectado: $ENVIRONMENT"
     echo ""
     
-    # Detener según ambiente
     case "$ENVIRONMENT" in
         dev)
             log_step "Ejecutando: docker compose -f docker-compose.yml -f docker-compose.dev.yml down"
@@ -78,7 +64,6 @@ fi
 
 echo ""
 
-# Verificar estado final
 if is_container_running traefik; then
     log_warning "Contenedor aún está corriendo"
     echo "   Intenta: docker rm -f traefik"

@@ -1,81 +1,49 @@
 services:
   traefik:
-    # ==========================================
-    # OVERRIDE PUERTOS: Sin dashboard en prod
-    # ==========================================
-    # En producción solo exponemos HTTP/HTTPS
     ports:
       - "${HTTP_PORT:-80}:80"
       - "${HTTPS_PORT:-443}:443"
-      # NO exponer 8080 en producción
-    
-    # ==========================================
-    # OVERRIDE VOLÚMENES: Agregar específicos de prod
-    # ==========================================
-    # Nota: Usar forma extendida para agregar, no reemplazar
+
     volumes:
-      # Base (heredada)
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./config/traefik.yml:/etc/traefik/traefik.yml:ro
       - ./config/dynamic:/etc/traefik/dynamic:ro
       - ./logs:/var/log/traefik
       - ./certs:/etc/traefik/certs
       
-      # Específicos de PRODUCCIÓN
       - ./config/traefik.prod.yml:/etc/traefik/traefik.prod.yml:ro
       - ./config/dynamic/prod:/etc/traefik/dynamic/prod:ro
       - ./logs/prod:/var/log/traefik/prod
       
-      # IMPORTANTE: acme.json debe ser read-write (Let's Encrypt lo modifica)
       - ./certs/prod:/etc/traefik/certs/prod
-    
-    # ==========================================
-    # OVERRIDE REDES: Agregar traefik-proxy
-    # ==========================================
-    # IMPORTANTE: En producción, conectar a socket-proxy (si existe)
+
     networks:
       - traefik-public
-      - traefik-proxy  # Red privada del socket proxy (opcional)
+      - traefik-proxy
     
-    # ==========================================
-    # OVERRIDE LOGGING: Doble capa de protección
-    # ==========================================
-    # ⚠️  CRÍTICO: Sin esto + logrotate, los logs pueden llenar el disco
     logging:
       driver: "json-file"
       options:
-        max-size: "100m"      # Máximo 100MB por archivo de log
-        max-file: "5"         # Mantener 5 archivos rotados (500MB total)
+        max-size: "100m"
+        max-file: "5"
         labels: "service=traefik,env=prod"
     
-    # ==========================================
-    # OVERRIDE VARIABLES DE ENTORNO: Prod-specific
-    # ==========================================
     environment:
       - TZ=${TZ:-UTC}
-      - TRAEFIK_API_INSECURE=false  # Solo en dev
+      - TRAEFIK_API_INSECURE=false
       - ENVIRONMENT=prod
       - TRAEFIK_LOG_LEVEL=${LOG_LEVEL:-WARN}
       
-      # CRÍTICO: Validar que estas variables existen
       - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL:?Error: LETSENCRYPT_EMAIL no está definido en .env}
       - PROD_DOMAIN=${PROD_DOMAIN:?Error: PROD_DOMAIN no está definido en .env}
       
-      # Orígenes CORS adicionales (opcional)
       - PROD_CORS_ORIGINS=${PROD_CORS_ORIGINS:-}
     
-    # ==========================================
-    # OVERRIDE LABELS: Dashboard protegido
-    # ==========================================
     labels:
-      # Label de identificación de ambiente
       - "com.traefik.environment=prod"
       
       - "traefik.enable=true"
       
-      # ==========================================
-      # CORS DINÁMICO - Configurable desde .env
-      # ==========================================
       - "traefik.http.middlewares.prod-cors-dynamic.headers.accessControlAllowMethods=GET,POST,PUT,DELETE,PATCH,OPTIONS"
       - "traefik.http.middlewares.prod-cors-dynamic.headers.accessControlAllowOriginList=https://${PROD_DOMAIN},https://www.${PROD_DOMAIN}${PROD_CORS_ORIGINS:+,${PROD_CORS_ORIGINS}}"
       - "traefik.http.middlewares.prod-cors-dynamic.headers.accessControlAllowHeaders=Content-Type,Authorization,X-Requested-With"
@@ -83,65 +51,40 @@ services:
       - "traefik.http.middlewares.prod-cors-dynamic.headers.accessControlMaxAge=3600"
       - "traefik.http.middlewares.prod-cors-dynamic.headers.addVaryHeader=true"
       
-      # ==========================================
-      # DASHBOARD - AUTENTICACIÓN + RATE LIMIT + IP WHITELIST
-      # ==========================================
-      
-      # Router HTTPS (seguro)
       - "traefik.http.routers.dashboard-secure.rule=Host(`traefik.${PROD_DOMAIN}`)"
       - "traefik.http.routers.dashboard-secure.service=api@internal"
       - "traefik.http.routers.dashboard-secure.entrypoints=websecure"
       - "traefik.http.routers.dashboard-secure.tls=true"
       - "traefik.http.routers.dashboard-secure.tls.certresolver=letsencrypt"
-      
-      # Middlewares de seguridad en cadena
-      # Orden: IP Whitelist → Rate Limit → Auth → Security Headers
+
       - "traefik.http.routers.dashboard-secure.middlewares=dashboard-ipwhitelist,dashboard-ratelimit,dashboard-auth,dashboard-security"
       
-      # 1. IP WHITELIST - Solo IPs permitidas pueden acceder
-      # IMPORTANTE: Configurar en .env con DASHBOARD_ALLOWED_IPS
-      # Ejemplo: DASHBOARD_ALLOWED_IPS=127.0.0.1/32,203.0.113.5/32,10.0.1.0/24
       - "traefik.http.middlewares.dashboard-ipwhitelist.ipwhitelist.sourcerange=${DASHBOARD_ALLOWED_IPS:-127.0.0.1/32}"
-      # Por defecto solo localhost. Para acceso remoto, configurar IPs específicas en .env
       
-      # 2. RATE LIMIT - Proteger contra fuerza bruta
       - "traefik.http.middlewares.dashboard-ratelimit.ratelimit.average=5"
-      # Máximo 5 requests por segundo (suficiente para dashboard)
       - "traefik.http.middlewares.dashboard-ratelimit.ratelimit.burst=10"
-      # Permite burst de 10 requests
       - "traefik.http.middlewares.dashboard-ratelimit.ratelimit.period=1s"
       
-      # 3. AUTENTICACIÓN BÁSICA
       - "traefik.http.middlewares.dashboard-auth.basicauth.users=${TRAEFIK_DASHBOARD_USER}:${TRAEFIK_DASHBOARD_PASSWORD}"
       
-      # 4. SECURITY HEADERS
       - "traefik.http.middlewares.dashboard-security.headers.customFrameOptionsValue=DENY"
       - "traefik.http.middlewares.dashboard-security.headers.customResponseHeaders.X-Content-Type-Options=nosniff"
       - "traefik.http.middlewares.dashboard-security.headers.customResponseHeaders.X-XSS-Protection=1; mode=block"
       - "traefik.http.middlewares.dashboard-security.headers.customResponseHeaders.Strict-Transport-Security=max-age=31536000; includeSubDomains"
       
-      # Router HTTP (redirección a HTTPS)
       - "traefik.http.routers.dashboard-http.rule=Host(`traefik.${PROD_DOMAIN}`)"
       - "traefik.http.routers.dashboard-http.entrypoints=web"
       - "traefik.http.routers.dashboard-http.middlewares=redirect-to-https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
     
-    # ==========================================
-    # OVERRIDE COMANDO: Usar config de producción
-    # ==========================================
     command:
       - "--configFile=/etc/traefik/traefik.prod.yml"
 
-# ==========================================
-# REDES COMPARTIDAS
-# ==========================================
 networks:
-  # Red pública: para servicios (definida en docker-compose.yml base)
   traefik-public:
     external: true
   
-  # Red privada: solo para socket proxy
   traefik-proxy:
     external: true
     name: traefik-proxy

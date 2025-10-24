@@ -1,62 +1,38 @@
-# ============================================
-# TRAEFIK - CONFIGURACIÓN ESTÁTICA BASE
-# ============================================
-# Esta configuración es común para dev y prod
-# Se sobrescribe con traefik.dev.yml o traefik.prod.yml
-
 global:
-  # Deshabilitar telemetría anónima
   sendAnonymousUsage: false
 
-# ============================================
-# ENTRYPOINTS (Puntos de entrada)
-# ============================================
 entryPoints:
-  # Puerto 80 - HTTP
   web:
     address: ":80"
-    # La redirección HTTP -> HTTPS se configura en traefik.prod.yml
-    # NO incluirla aquí para evitar afectar desarrollo
 
-  # Puerto 443 - HTTPS
   websecure:
     address: ":443"
-    # Configuración HTTP/2 y HTTP/3
     http:
       tls: {}
 
-# ============================================
-# PROVIDERS (Proveedores de configuración)
-# ============================================
 providers:
-  # Docker provider - detecta contenedores automáticamente
   docker:
     endpoint: "unix:///var/run/docker.sock"
-    exposedByDefault: false  # Solo expone contenedores con traefik.enable=true
-    network: "traefik-public"  # Red por defecto para buscar contenedores
-    watch: true  # Monitorea cambios en tiempo real
+    exposedByDefault: false
+    network: "traefik-public"
+    watch: true
 
-  # File provider - carga configuración dinámica desde archivos
   file:
     directory: "/etc/traefik/dynamic"
-    watch: true  # Recarga automáticamente cuando cambian los archivos
+    watch: true
 
-# ============================================
-# API y DASHBOARD
-# ============================================
 api:
-  dashboard: true  # Habilita el dashboard web
-  debug: false     # Se sobrescribe en dev
+  dashboard: true
+  debug: false
 
-# ============================================
-# LOGGING
-# ============================================
+ping:
+  entryPoint: "traefik"
+
 log:
-  level: "INFO"  # DEBUG, INFO, WARN, ERROR
+  level: "INFO"
   filePath: "/var/log/traefik/traefik.log"
-  format: "common"  # common o json
+  format: "common"
 
-# Log de acceso (peticiones HTTP)
 accessLog:
   filePath: "/var/log/traefik/access.log"
   format: "common"

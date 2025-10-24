@@ -101,6 +101,23 @@ fi
 echo ""
 
 # ==========================================
+# LIMPIAR CONTENEDORES ANTERIORES
+# ==========================================
+log_step "Limpiando contenedores anteriores..."
+
+# Detener y eliminar contenedores previos si existen
+if docker ps -a --format '{{.Names}}' | grep -q '^traefik$'; then
+    docker stop traefik 2>/dev/null || true
+    docker rm traefik 2>/dev/null || true
+    log_success "Contenedores previos eliminados"
+    sleep 2
+else
+    log_info "No hay contenedores previos"
+fi
+
+echo ""
+
+# ==========================================
 # CREAR RED DOCKER CON VALIDACIÓN
 # ==========================================
 log_step "Validando configuración de red Docker..."

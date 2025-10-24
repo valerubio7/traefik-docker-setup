@@ -1,15 +1,5 @@
 #!/bin/bash
 
-# ============================================
-# FUNCIONES COMUNES PARA SCRIPTS TRAEFIK
-# ============================================
-# Este archivo contiene funciones reutilizables
-# Usar: source ./scripts/common.sh
-# ============================================
-
-# ==========================================
-# COLORES PARA OUTPUT
-# ==========================================
 export RED='\033[0;31m'
 export GREEN='\033[0;32m'
 export YELLOW='\033[1;33m'
@@ -17,9 +7,6 @@ export BLUE='\033[0;34m'
 export CYAN='\033[0;36m'
 export NC='\033[0m' # No Color
 
-# ==========================================
-# FUNCIÓN: Log con colores
-# ==========================================
 log_info() {
     echo -e "${BLUE}ℹ️  $1${NC}"
 }
@@ -40,10 +27,6 @@ log_step() {
     echo -e "${CYAN}🔹 $1${NC}"
 }
 
-# ==========================================
-# FUNCIÓN: Retry logic para docker commands
-# ==========================================
-# Uso: docker_retry "docker ps"
 docker_retry() {
     local max_retries=3
     local retry_count=0
@@ -65,9 +48,6 @@ docker_retry() {
     return 1
 }
 
-# ==========================================
-# FUNCIÓN: Validar Docker está disponible
-# ==========================================
 validate_docker() {
     log_step "Validando Docker..."
     
@@ -92,9 +72,6 @@ validate_docker() {
     log_success "Docker disponible"
 }
 
-# ==========================================
-# FUNCIÓN: Validar archivo .env existe
-# ==========================================
 validate_env_file() {
     if [ ! -f .env ]; then
         log_error "Archivo .env no encontrado"
@@ -105,17 +82,12 @@ validate_env_file() {
         exit 1
     fi
     
-    # Cargar variables
     source .env
     log_success "Archivo .env cargado"
 }
 
-# ==========================================
-# FUNCIÓN: Detectar ambiente (dev/prod)
-# ==========================================
 detect_environment() {
     if docker inspect traefik &>/dev/null; then
-        # Buscar label de ambiente
         local env_label=$(docker inspect traefik --format '{{index .Config.Labels "com.traefik.environment"}}' 2>/dev/null || echo "")
         
         if [ -n "$env_label" ]; then
@@ -123,7 +95,6 @@ detect_environment() {
             return 0
         fi
         
-        # Fallback: detectar por variable de entorno
         local env_var=$(docker inspect traefik --format '{{range .Config.Env}}{{println .}}{{end}}' | grep '^ENVIRONMENT=' | cut -d'=' -f2 || echo "")
         
         if [ -n "$env_var" ]; then
@@ -131,7 +102,6 @@ detect_environment() {
             return 0
         fi
         
-        # Si no se puede detectar
         echo "unknown"
         return 1
     else
@@ -140,31 +110,24 @@ detect_environment() {
     fi
 }
 
-# ==========================================
-# FUNCIÓN: Validar formato de dominio
-# ==========================================
 validate_domain_format() {
     local domain="$1"
     local domain_regex='^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$'
     
-    # Convertir a lowercase para validación
     domain=$(echo "$domain" | tr '[:upper:]' '[:lower:]')
     
     if [[ ! $domain =~ $domain_regex ]]; then
         return 1
     fi
     
-    # Validar que no sea localhost (inválido para Let's Encrypt)
     if [ "$domain" = "localhost" ] || [[ $domain == *.localhost ]]; then
         return 1
     fi
     
-    # Validar que no contenga puerto
     if [[ $domain == *:* ]]; then
         return 1
     fi
     
-    # Validar que no contenga protocolo
     if [[ $domain == http://* ]] || [[ $domain == https://* ]]; then
         return 1
     fi
@@ -172,13 +135,9 @@ validate_domain_format() {
     return 0
 }
 
-# ==========================================
-# FUNCIÓN: Validar hash bcrypt
-# ==========================================
 validate_bcrypt_hash() {
     local hash="$1"
     
-    # Validar formato bcrypt ($2a$, $2b$, $2y$) o apache MD5 ($apr1$)
     if [[ $hash =~ ^\$2[ayb]\$.{56}$ ]] || [[ $hash =~ ^\$apr1\$.{37}$ ]]; then
         return 0
     fi
@@ -186,16 +145,12 @@ validate_bcrypt_hash() {
     return 1
 }
 
-# ==========================================
-# FUNCIÓN: Crear y validar red Docker
-# ==========================================
 create_docker_network() {
     local network_name="$1"
     
     if docker network inspect "$network_name" >/dev/null 2>&1; then
         log_success "Red '$network_name' existe"
         
-        # Validar driver
         local driver=$(docker network inspect "$network_name" -f '{{.Driver}}' 2>/dev/null || echo "")
         if [ "$driver" = "bridge" ]; then
             log_success "Driver correcto: bridge"
@@ -204,7 +159,6 @@ create_docker_network() {
             return 1
         fi
         
-        # Validar que la red tiene configuración válida
         if ! docker network inspect "$network_name" --format '{{json .IPAM.Config}}' | jq empty &>/dev/null; then
             log_warning "Configuración de red corrupta"
             return 1
@@ -224,9 +178,6 @@ create_docker_network() {
     fi
 }
 
-# ==========================================
-# FUNCIÓN: Verificar contenedor está corriendo
-# ==========================================
 is_container_running() {
     local container_name="$1"
     
@@ -237,9 +188,6 @@ is_container_running() {
     fi
 }
 
-# ==========================================
-# FUNCIÓN: Obtener health status de contenedor
-# ==========================================
 get_container_health() {
     local container_name="$1"
     
@@ -250,9 +198,6 @@ get_container_health() {
     fi
 }
 
-# ==========================================
-# FUNCIÓN: Esperar a que contenedor esté healthy
-# ==========================================
 wait_for_healthy() {
     local container_name="$1"
     local max_wait="${2:-30}"
@@ -271,7 +216,6 @@ wait_for_healthy() {
                 log_error "$container_name está unhealthy"
                 return 1
             fi
-            # Si está "starting" o "no-healthcheck", continuar esperando
         fi
         
         sleep 1
@@ -282,9 +226,6 @@ wait_for_healthy() {
     return 1
 }
 
-# ==========================================
-# FUNCIÓN: Validar dependencias de sistema
-# ==========================================
 check_dependencies() {
     local missing_deps=()
     
@@ -308,9 +249,6 @@ check_dependencies() {
     return 0
 }
 
-# ==========================================
-# FUNCIÓN: Crear directorio con permisos seguros
-# ==========================================
 create_secure_dir() {
     local dir_path="$1"
     local perms="${2:-755}"
@@ -322,9 +260,6 @@ create_secure_dir() {
     fi
 }
 
-# ==========================================
-# FUNCIÓN: Backup de archivo con timestamp
-# ==========================================
 backup_file() {
     local file_path="$1"
     
@@ -341,9 +276,6 @@ backup_file() {
     fi
 }
 
-# ==========================================
-# FUNCIÓN: Validar JSON
-# ==========================================
 validate_json() {
     local file_path="$1"
     
@@ -358,9 +290,6 @@ validate_json() {
     fi
 }
 
-# ==========================================
-# FUNCIÓN: Mostrar banner
-# ==========================================
 show_banner() {
     local title="$1"
     local width=60
@@ -374,9 +303,6 @@ show_banner() {
     echo ""
 }
 
-# ==========================================
-# FUNCIÓN: Confirmar acción (sí/no)
-# ==========================================
 confirm_action() {
     local prompt="$1"
     local default="${2:-N}"
@@ -400,9 +326,6 @@ confirm_action() {
     fi
 }
 
-# ==========================================
-# FUNCIÓN: Obtener IP pública del servidor
-# ==========================================
 get_public_ip() {
     curl -s https://api.ipify.org 2>/dev/null || \
     curl -s https://ifconfig.me 2>/dev/null || \
@@ -410,9 +333,6 @@ get_public_ip() {
     echo "unavailable"
 }
 
-# ==========================================
-# FUNCIÓN: Validar puerto está libre
-# ==========================================
 is_port_available() {
     local port="$1"
     
@@ -421,7 +341,6 @@ is_port_available() {
     elif command -v ss &> /dev/null; then
         ! ss -tuln 2>/dev/null | grep -q ":${port} "
     else
-        # Fallback: intentar bind temporal
         (echo >/dev/tcp/127.0.0.1/$port) &>/dev/null
         [ $? -ne 0 ]
     fi

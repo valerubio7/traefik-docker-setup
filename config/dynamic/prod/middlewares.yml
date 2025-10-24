@@ -1,68 +1,27 @@
-# ============================================
-# MIDDLEWARES DE PRODUCCIÓN
-# ============================================
-# Middlewares optimizados y seguros para producción
-# NOTA: Incluye redirect-to-https que NO debe aplicarse en desarrollo
-# Los middlewares del archivo base (middlewares.yml) se cargan aquí también
-
 http:
   middlewares:
-    # ==========================================
-    # SECURITY HEADERS ESTRICTOS
-    # ==========================================
     prod-security:
       headers:
-        # Anti-clickjacking
         frameDeny: true
         customFrameOptionsValue: "SAMEORIGIN"
         
-        # HTTPS forzado
         sslRedirect: true
         sslForceHost: true
         
-        # HSTS - 1 año
         stsSeconds: 31536000
         stsIncludeSubdomains: true
         stsPreload: true
         
-        # Prevención de ataques
         contentTypeNosniff: true
         browserXssFilter: true
         forceSTSHeader: true
         
-        # Referrer policy
         referrerPolicy: "strict-origin-when-cross-origin"
         
-        # Feature/Permissions policy
         permissionsPolicy: "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
         
-        # Content Security Policy
         contentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'"
 
-    # ==========================================
-    # CORS RESTRINGIDO
-    # ==========================================
-    # ✓ MEJORADO: Ahora configurable desde .env
-    # 
-    # Hay 2 formas de usar CORS en producción:
-    #
-    # 1. MIDDLEWARE DINÁMICO (RECOMENDADO)
-    #    • Configurar desde docker-compose.prod.yml
-    #    • Se actualiza sin reiniciar Traefik
-    #    • Usar middleware: "prod-cors-dynamic@docker"
-    #    • Configuración en .env:
-    #      PROD_DOMAIN=tudominio.com
-    #      PROD_CORS_ORIGINS=https://app.tudominio.com,https://api.tudominio.com
-    #
-    # 2. MIDDLEWARE ESTÁTICO (ESTE ARCHIVO)
-    #    • Configurar aquí (requiere editar archivo)
-    #    • Se recarga automáticamente
-    #    • Usar middleware: "prod-cors"
-    #    • Para cambiar: editar accessControlAllowOriginList abajo
-    #
-    # Ejemplo en docker-compose de otro servicio:
-    # labels:
-    #   - "traefik.http.routers.mi-app-secure.middlewares=prod-cors-dynamic@docker"
     prod-cors:
       headers:
         accessControlAllowMethods:
@@ -72,7 +31,6 @@ http:
           - DELETE
           - PATCH
         accessControlAllowOriginList:
-          # IMPORTANTE: Editar los dominios aquí o usar prod-cors-dynamic@docker desde .env
           - "https://example.com"
           - "https://www.example.com"
         accessControlAllowHeaders:

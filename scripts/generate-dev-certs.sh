@@ -1,27 +1,13 @@
 #!/bin/bash
 
-# ============================================
-# GENERAR CERTIFICADOS DE DESARROLLO
-# ============================================
-# Este script genera certificados SSL autofirmados para desarrollo local
-# 
-# MEJORAS:
-# • Verifica si certificados válidos ya existen
-# • Muestra fecha de expiración y días restantes
-# • Solo regenera si están próximos a expirar (< 30 días)
-# • Previene sobrescritura innecesaria cuando contenedores están corriendo
-# • Tiene flag --force para regenerar aunque sean válidos
-
 set -e
 
-# Colores
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Función para mostrar información
 info() {
     echo -e "${BLUE}ℹ${NC} $1"
 }
@@ -38,20 +24,17 @@ error() {
     echo -e "${RED}✗${NC} $1"
 }
 
-# Directorio de certificados
 CERT_DIR="./certs/dev"
 mkdir -p "$CERT_DIR"
 
-# Configuración
 COUNTRY="AR"
 STATE="Mendoza"
 CITY="San Rafael"
 ORG="Development"
 CN="localhost"
 DAYS=365
-DAYS_WARNING=30  # Regenerar si quedan < 30 días
+DAYS_WARNING=30
 
-# Flag para forzar regeneración
 FORCE=false
 if [ "${1:-}" = "--force" ]; then
     FORCE=true
@@ -61,16 +44,12 @@ fi
 echo "🔐 Verificando certificados SSL para desarrollo..."
 echo ""
 
-# ==========================================
-# VERIFICAR CERTIFICADOS EXISTENTES
-# ==========================================
 SHOULD_REGENERATE=false
 REGEN_REASON=""
 
 if [ -f "$CERT_DIR/localhost.crt" ] && [ -f "$CERT_DIR/localhost.key" ]; then
     info "Certificados encontrados"
     
-    # Obtener fecha de expiración
     EXPIRY_DATE=$(openssl x509 -in "$CERT_DIR/localhost.crt" -noout -dates | grep notAfter | cut -d= -f2)
     EXPIRY_UNIX=$(date -d "$EXPIRY_DATE" +%s 2>/dev/null || date -j -f "%b %d %T %Z %Y" "$EXPIRY_DATE" +%s)
     NOW_UNIX=$(date +%s)
@@ -85,7 +64,6 @@ if [ -f "$CERT_DIR/localhost.crt" ] && [ -f "$CERT_DIR/localhost.key" ]; then
     else
         success "Certificado válido por $DAYS_LEFT días más"
         
-        # Verificar SANs
         SANS=$(openssl x509 -in "$CERT_DIR/localhost.crt" -noout -text 2>/dev/null | grep -A1 "Subject Alternative Name" || echo "")
         if echo "$SANS" | grep -q "localhost" && echo "$SANS" | grep -q "127.0.0.1"; then
             success "Certificado tiene SANs correctos (localhost, 127.0.0.1)"
@@ -105,9 +83,6 @@ fi
 
 echo ""
 
-# ==========================================
-# DECIDIR SI REGENERAR
-# ==========================================
 if [ "$FORCE" = true ]; then
     warning "Flag --force activado, regenerando aunque certificado sea válido"
     SHOULD_REGENERATE=true
@@ -122,7 +97,6 @@ fi
 echo "Razón de regeneración: $REGEN_REASON"
 echo ""
 
-# Hacer backup si existen
 if [ -f "$CERT_DIR/localhost.crt" ]; then
     BACKUP_DIR="$CERT_DIR/backups"
     mkdir -p "$BACKUP_DIR"
@@ -138,17 +112,12 @@ if [ -f "$CERT_DIR/localhost.crt" ]; then
     echo ""
 fi
 
-# ==========================================
-# REGENERAR CERTIFICADOS
-# ==========================================
 info "Generando nuevos certificados SSL..."
 echo ""
 
-# Generar clave privada
 echo "📝 Generando clave privada..."
 openssl genrsa -out "$CERT_DIR/localhost.key" 2048
 
-# Crear archivo de configuración para SANs (Subject Alternative Names)
 cat > "$CERT_DIR/openssl.cnf" << EOF
 [req]
 default_bits = 2048
@@ -177,7 +146,6 @@ IP.1 = 127.0.0.1
 IP.2 = ::1
 EOF
 
-# Generar certificado autofirmado
 echo "📜 Generando certificado autofirmado..."
 openssl req -new -x509 \
     -key "$CERT_DIR/localhost.key" \
@@ -186,7 +154,6 @@ openssl req -new -x509 \
     -config "$CERT_DIR/openssl.cnf" \
     -extensions v3_req
 
-# Generar CA certificate (opcional, para mayor compatibilidad)
 echo "🏛️  Generando CA certificate..."
 openssl req -new -x509 \
     -key "$CERT_DIR/localhost.key" \
@@ -194,17 +161,12 @@ openssl req -new -x509 \
     -days $DAYS \
     -subj "/C=$COUNTRY/ST=$STATE/L=$CITY/O=$ORG/CN=Development CA"
 
-# Limpiar archivo temporal
 rm "$CERT_DIR/openssl.cnf"
 
-# ==========================================
-# INFORMACIÓN DE CERTIFICADOS NUEVOS
-# ==========================================
 echo ""
 success "Certificados generados exitosamente"
 echo ""
 
-# Obtener información del certificado nuevo
 NEW_EXPIRY_DATE=$(openssl x509 -in "$CERT_DIR/localhost.crt" -noout -dates | grep notAfter | cut -d= -f2)
 NEW_EXPIRY_UNIX=$(date -d "$NEW_EXPIRY_DATE" +%s 2>/dev/null || date -j -f "%b %d %T %Z %Y" "$NEW_EXPIRY_DATE" +%s)
 NEW_DAYS_LEFT=$(( ($NEW_EXPIRY_UNIX - $(date +%s)) / 86400 ))

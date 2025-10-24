@@ -1,29 +1,15 @@
-# ============================================
-# TRAEFIK - CONFIGURACIÓN DE DESARROLLO
-# ============================================
-# Esta configuración sobrescribe traefik.yml para desarrollo
-
 global:
   sendAnonymousUsage: false
 
-# ============================================
-# ENTRYPOINTS
-# ============================================
 entryPoints:
-  # Puerto 80 - HTTP (SIN redirección a HTTPS en desarrollo)
   web:
     address: ":80"
-    # Explícitamente deshabilitar redirección heredada de traefik.yml
 
-  # Puerto 443 - HTTPS con certificados autofirmados
   websecure:
     address: ":443"
     http:
-      tls: true  # Habilita TLS, los certificados se definen en dynamic/dev/certificates.yml
+      tls: true
 
-# ============================================
-# PROVIDERS
-# ============================================
 providers:
   docker:
     endpoint: "unix:///var/run/docker.sock"
@@ -35,38 +21,19 @@ providers:
     directory: "/etc/traefik/dynamic"
     watch: true
 
-# ============================================
-# API y DASHBOARD (modo inseguro para desarrollo)
-# ============================================
-# ⚠️  ADVERTENCIA SEGURIDAD:
-# El dashboard está configurado con insecure: true (sin autenticación)
-# Esto es SOLO válido para desarrollo con acceso restringido.
-# 
-# PROTECCIÓN IMPLEMENTADA:
-# ✓ docker-compose.dev.yml vincula puerto 8080 SOLO a 127.0.0.1
-# ✓ Port 8080 no es accesible desde la red (solo localhost)
-# ✓ NUNCA ejecutar así en producción
-#
-# ACCESO AL DASHBOARD:
-# • http://traefik.localhost:8080 (con bind en localhost)
-# • https://traefik.localhost:8080 (con advertencia de cert autofirmado)
 api:
   dashboard: true
-  debug: true      # Muestra información extra para debugging
-  insecure: true   # Permite acceso sin autenticación (protegido por bind a localhost)
+  debug: true
+  insecure: true
 
-# ============================================
-# LOGGING (modo verbose para desarrollo)
-# ============================================
-# ⚠️  SEGURIDAD EN LOGS: 
-# Aunque es desarrollo, NUNCA loguear headers sensibles
-# Riesgo: Authorization, Cookie, tokens expuestos en logs
+ping:
+  entryPoint: "traefik"
+
 log:
-  level: "DEBUG"   # Máximo nivel de detalle
+  level: "DEBUG"
   filePath: "/var/log/traefik/dev/traefik.log"
   format: "common"
 
-# Log de acceso con más detalle
 accessLog:
   filePath: "/var/log/traefik/dev/access.log"
   format: "common"
@@ -79,17 +46,8 @@ accessLog:
       - "500-599"
   fields:
     headers:
-      # CRÍTICO: NO loguear headers sensibles
-      # defaultMode: "keep" registraría Authorization, Cookie, etc.
-      defaultMode: "drop"  # ✓ Por defecto: NO registra headers
+      defaultMode: "drop"
       names:
-        # Registrar SOLO headers no sensibles
-        User-Agent: "keep"      # ✓ Información de cliente
-        Referer: "keep"         # ✓ Origen de la petición
-        Accept-Language: "keep" # ✓ Idioma del cliente
-        # NO incluir:
-        # - Authorization (tokens, credenciales)
-        # - Cookie (sesiones, tokens)
-        # - X-API-Key (claves de API)
-        # - X-Auth-Token (tokens de autenticación)
-        # - Proxy-Authorization (credenciales proxy)
+        User-Agent: "keep"
+        Referer: "keep"
+        Accept-Language: "keep"

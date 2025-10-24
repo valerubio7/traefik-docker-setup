@@ -1,27 +1,5 @@
-# ============================================
-# MIDDLEWARES DE DESARROLLO
-# ============================================
-# Middlewares específicos para ambiente de desarrollo
-# NOTA: En desarrollo NO se incluye redirect-to-https
-# Los middlewares del archivo base (middlewares.yml) se cargan aquí también
-
 http:
   middlewares:
-    # ==========================================
-    # CORS PERMISIVO (solo desarrollo)
-    # ==========================================
-    # ⚠️  ADVERTENCIA: CORS muy abierto en desarrollo
-    # CRÍTICO: Configurar como en producción para evitar sorpresas
-    # 
-    # Opciones:
-    # 1. RESTRICTIVO (como prod): Especificar orígenes exactos
-    # 2. PERMISIVO (actual): Permite "*" (REVISA CORS ISSUES EN PROD)
-    #
-    # Cambiar a:
-    #   accessControlAllowOriginList:
-    #     - "http://localhost:3000"
-    #     - "http://localhost:8000"
-    # Para detectar problemas ANTES de producción
     dev-cors:
       headers:
         accessControlAllowMethods:
@@ -32,92 +10,46 @@ http:
           - PATCH
           - OPTIONS
         accessControlAllowOriginList:
-          - "*"  # ⚠️  Permisivo: Permite todos los orígenes
+          - "*"
         accessControlAllowHeaders:
           - "Content-Type"
           - "Authorization"
           - "X-Requested-With"
-        accessControlAllowCredentials: false  # No permitir credenciales con "*"
+        accessControlAllowCredentials: false
         accessControlMaxAge: 100
         addVaryHeader: true
 
-    # ==========================================
-    # HEADERS DE DEBUG
-    # ==========================================
     dev-debug-headers:
       headers:
         customResponseHeaders:
           X-Debug-Environment: "development"
           X-Debug-Server: "traefik-dev"
-        # Desactiva cache en desarrollo
         customRequestHeaders:
           Cache-Control: "no-cache, no-store, must-revalidate"
 
-    # ==========================================
-    # SIN RATE LIMITING en desarrollo
-    # ==========================================
-    # En desarrollo no limitamos requests para facilitar testing
-
-    # ==========================================
-    # SECURITY HEADERS RELAJADOS
-    # ==========================================
-    # ⚠️  ADVERTENCIA: Headers menos restrictivos que producción
-    # OBJETIVO: Facilitar debugging sin ocultar security issues
-    #
-    # Comparación con producción:
-    # ✓ frameDeny: false (permite iframes en dev)
-    # ✓ sslRedirect: false (es HTTP en dev)
-    # ⚠️  CSP permisivo (permite unsafe-inline/eval)
-    # ✓ HSTS desactivado (solo para HTTPS en prod)
-    #
-    # CRÍTICO: Revisar estos headers en PROD antes de deploy
     dev-security:
       headers:
-        # Menos estricto que producción
-        frameDeny: false  # ✓ Permite iframes para debugging
-        contentTypeNosniff: true  # ✓ Igual que prod
-        browserXssFilter: true  # ✓ Igual que prod
-        # Sin HSTS en desarrollo (solo HTTPS en prod)
-        sslRedirect: false  # ✓ Correcto: HTTP en desarrollo
-        # CSP permisiva para facilitar debugging
-        # ⚠️  CAMBIAR EN PRODUCCIÓN a CSP más restrictiva
+        frameDeny: false
+        contentTypeNosniff: true
+        browserXssFilter: true
+        sslRedirect: false
         contentSecurityPolicy: "default-src 'self' 'unsafe-inline' 'unsafe-eval' *"
-        # Referrer policy
         referrerPolicy: "strict-origin-when-cross-origin"
 
-    # ==========================================
-    # LOGGING VERBOSE
-    # ==========================================
     dev-logging:
       headers:
         customResponseHeaders:
           X-Request-ID: "{{.RequestID}}"
 
-    # ==========================================
-    # SECURITY HEADERS ESTRICTOS (similar a prod)
-    # ==========================================
-    # Use este middleware si quieres que sea más similar a producción
-    # y detectar problemas de CORS antes de deploy
-    # 
-    # En routers: middlewares: ["dev-security-strict@file"]
     dev-security-strict:
       headers:
-        # Más similar a producción
         frameDeny: true
         contentTypeNosniff: true
         browserXssFilter: true
-        forceSTSHeader: false  # Sin HSTS (no HTTPS en dev)
+        forceSTSHeader: false
         referrerPolicy: "strict-origin-when-cross-origin"
-        # CSP más restrictiva
         contentSecurityPolicy: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
 
-    # ==========================================
-    # CORS RESTRICTIVO (similar a prod)
-    # ==========================================
-    # Use este middleware si quieres que sea más similar a producción
-    # Recomendado para APIs que usarás en producción
-    #
-    # En routers: middlewares: ["dev-cors-strict@file"]
     dev-cors-strict:
       headers:
         accessControlAllowMethods:
@@ -127,7 +59,7 @@ http:
           - DELETE
           - PATCH
         accessControlAllowOriginList:
-          - "http://localhost:3000"   # ← Configura tus orígenes
+          - "http://localhost:3000"
           - "http://localhost:8000"
           - "http://127.0.0.1:3000"
         accessControlAllowHeaders:

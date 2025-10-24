@@ -1,61 +1,9 @@
-# ============================================
-# ROUTERS GLOBALES (OPCIONAL)
-# ============================================
-# La mayoría de routers se definen en los docker-compose de cada proyecto
-# Este archivo es para routers estáticos o páginas de error personalizadas
-
 http:
-  # ==========================================
-  # ROUTERS
-  # ==========================================
   routers:
-    # Ejemplo: Página de mantenimiento
-    # maintenance:
-    #   rule: "Host(`maintenance.example.com`)"
-    #   entryPoints:
-    #     - websecure
-    #   service: maintenance-service
-    #   tls:
-    #     certResolver: letsencrypt
-    #   middlewares:
-    #     - security-headers
-
-    # Ejemplo: Redireccionamiento de dominio viejo
-    # old-domain-redirect:
-    #   rule: "Host(`old-domain.com`)"
-    #   entryPoints:
-    #     - web
-    #     - websecure
-    #   middlewares:
-    #     - redirect-to-new-domain
-    #   service: noop@internal
-
-  # ==========================================
-  # SERVICES
-  # ==========================================
   services:
-    # Ejemplo: Servicio de mantenimiento
-    # maintenance-service:
-    #   loadBalancer:
-    #     servers:
-    #       - url: "http://maintenance-page:80"
-
-    # Servicio noop para redirects
     noop:
       loadBalancer:
         servers:
           - url: "http://localhost"
 
-  # ==========================================
-  # MIDDLEWARES ESPECÍFICOS DE ROUTERS
-  # ==========================================
   middlewares:
-    # Ejemplo: Redirección a nuevo dominio
-    # redirect-to-new-domain:
-    #   redirectRegex:
-    #     regex: ".*"
-    #     replacement: "https://new-domain.com"
-    #     permanent: true
-
-    # Este archivo está principalmente para ejemplos
-    # La mayoría de tu configuración estará en los labels de Docker
