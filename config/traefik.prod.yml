@@ -107,7 +107,15 @@ accessLog:
     # No registrar 200-299 para ahorrar espacio
   fields:
     headers:
-      defaultMode: "drop"  # No registrar headers por defecto
+      # CRÍTICO: NUNCA registrar headers sensibles en producción
+      defaultMode: "drop"  # ✓ Por defecto: NO registra headers
       names:
-        User-Agent: "keep"
-        Referer: "keep"
+        # Registrar SOLO headers no sensibles
+        User-Agent: "keep"      # ✓ Información de cliente (para análisis)
+        Referer: "keep"         # ✓ Origen de la petición (para análisis)
+        # NUNCA incluir headers sensibles:
+        # - Authorization (tokens, credenciales)
+        # - Cookie (sesiones)
+        # - X-API-Key (claves de API)
+        # - X-Auth-Token (autenticación)
+        # - Proxy-Authorization (proxy auth)

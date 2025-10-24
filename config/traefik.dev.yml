@@ -60,6 +60,9 @@ api:
 # ============================================
 # LOGGING (modo verbose para desarrollo)
 # ============================================
+# ⚠️  SEGURIDAD EN LOGS: 
+# Aunque es desarrollo, NUNCA loguear headers sensibles
+# Riesgo: Authorization, Cookie, tokens expuestos en logs
 log:
   level: "DEBUG"   # Máximo nivel de detalle
   filePath: "/var/log/traefik/dev/traefik.log"
@@ -78,4 +81,17 @@ accessLog:
       - "500-599"
   fields:
     headers:
-      defaultMode: "keep"  # Registra todos los headers para debugging
+      # CRÍTICO: NO loguear headers sensibles
+      # defaultMode: "keep" registraría Authorization, Cookie, etc.
+      defaultMode: "drop"  # ✓ Por defecto: NO registra headers
+      names:
+        # Registrar SOLO headers no sensibles
+        User-Agent: "keep"      # ✓ Información de cliente
+        Referer: "keep"         # ✓ Origen de la petición
+        Accept-Language: "keep" # ✓ Idioma del cliente
+        # NO incluir:
+        # - Authorization (tokens, credenciales)
+        # - Cookie (sesiones, tokens)
+        # - X-API-Key (claves de API)
+        # - X-Auth-Token (tokens de autenticación)
+        # - Proxy-Authorization (credenciales proxy)
