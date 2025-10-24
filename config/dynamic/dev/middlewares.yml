@@ -2,6 +2,8 @@
 # MIDDLEWARES DE DESARROLLO
 # ============================================
 # Middlewares específicos para ambiente de desarrollo
+# NOTA: En desarrollo NO se incluye redirect-to-https
+# Los middlewares del archivo base (middlewares.yml) se cargan aquí también
 
 http:
   middlewares:

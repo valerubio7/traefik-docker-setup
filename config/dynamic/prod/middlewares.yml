@@ -2,6 +2,8 @@
 # MIDDLEWARES DE PRODUCCIÓN
 # ============================================
 # Middlewares optimizados y seguros para producción
+# NOTA: Incluye redirect-to-https que NO debe aplicarse en desarrollo
+# Los middlewares del archivo base (middlewares.yml) se cargan aquí también
 
 http:
   middlewares:
@@ -136,6 +138,16 @@ http:
         maxResponseBodyBytes: 52428800
         memResponseBodyBytes: 1048576
         retryExpression: "IsNetworkError() && Attempts() < 2"
+
+    # ==========================================
+    # REDIRECT HTTP -> HTTPS (SOLO PRODUCCIÓN)
+    # ==========================================
+    # CRÍTICO: Este middleware SOLO se define en prod/middlewares.yml
+    # NO está en middlewares.yml base para evitar aplicarse en desarrollo
+    redirect-to-https:
+      redirectScheme:
+        scheme: https
+        permanent: true
 
     # ==========================================
     # HEADERS CUSTOM

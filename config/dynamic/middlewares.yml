@@ -83,15 +83,12 @@ http:
         initialInterval: 100ms
 
     # ==========================================
-    # REDIRECTS
+    # REDIRECTS - Específicos de entorno
     # ==========================================
-    # Redirección HTTP -> HTTPS
-    redirect-to-https:
-      redirectScheme:
-        scheme: https
-        permanent: true
+    # NOTA: redirect-to-https se define SOLO en prod/middlewares.yml
+    # No incluir aquí para evitar conflictos entre dev y prod
 
-    # Redirección www -> non-www
+    # Redirección www -> non-www (aplicable en ambos entornos)
     redirect-non-www:
       redirectRegex:
         regex: "^https://www\\.(.+)"
