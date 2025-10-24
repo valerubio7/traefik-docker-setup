@@ -15,7 +15,8 @@ entryPoints:
   # Puerto 80 - HTTP
   web:
     address: ":80"
-    # Configuración para redirección HTTP -> HTTPS (se activa en prod)
+    # Configuración para redirección HTTP -> HTTPS
+    # NOTA: Esta redirección es GLOBAL en traefik.yml pero se DESACTIVA en traefik.dev.yml
     http:
       redirections:
         entryPoint:
