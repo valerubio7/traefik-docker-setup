@@ -65,10 +65,17 @@ http:
     # ==========================================
     # RATE LIMITING ESTRICTO
     # ==========================================
+    # ✓ RECOMENDADO PARA PRODUCCIÓN
+    # Basado en capacidad típica de VPS pequeño
+    #
+    # • prod-rate-limit: General (50 req/s)
+    # • prod-rate-limit-api: APIs (20 req/s)
+    # • prod-rate-limit-strict: Crítico/Público (5 req/s)
+    
     prod-rate-limit:
       rateLimit:
-        average: 50    # 50 req/s
-        burst: 100
+        average: 50    # 50 req/s - Para apps internas
+        burst: 100     # Permite burst temporal
         period: 1s
         sourceCriterion:
           ipStrategy:
@@ -76,7 +83,7 @@ http:
 
     prod-rate-limit-api:
       rateLimit:
-        average: 20
+        average: 20    # 20 req/s - Para APIs normales
         burst: 40
         period: 1s
         sourceCriterion:
@@ -85,7 +92,7 @@ http:
 
     prod-rate-limit-strict:
       rateLimit:
-        average: 5
+        average: 5     # 5 req/s - Para APIs públicas/críticas
         burst: 10
         period: 1s
         sourceCriterion:

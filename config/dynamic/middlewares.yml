@@ -64,17 +64,44 @@ http:
     # ==========================================
     # RATE LIMITING - Protección contra abusos
     # ==========================================
+    # ⚠️  CRÍTICO: Ajustar según tu capacidad de infraestructura
+    #
+    # Recomendaciones:
+    # • APIs públicas: 10-20 req/s
+    # • Apps internas: 50 req/s
+    # • Current: 100 req/s es ALTO (debería ser 20-30)
+    #
+    # El rate limiting ACTUAL está DEMASIADO PERMISIVO
+    # Un DDoS básico puede saturar el servidor
+    
     rate-limit:
       rateLimit:
-        average: 100  # 100 requests por segundo
-        burst: 200    # Hasta 200 requests en burst
+        average: 30   # 30 requests por segundo (REDUCIDO de 100)
+        burst: 60     # Hasta 60 requests en burst (REDUCIDO de 200)
         period: 1s
 
     # Rate limit más estricto para APIs sensibles
     rate-limit-strict:
       rateLimit:
-        average: 10
-        burst: 20
+        average: 10   # 10 requests por segundo (bueno para APIs)
+        burst: 20     # Hasta 20 requests en burst
+        period: 1s
+
+    # Rate limit para APIs públicas (muy restrictivo)
+    rate-limit-public:
+      rateLimit:
+        average: 5    # 5 requests por segundo
+        burst: 10     # Hasta 10 requests en burst
+        period: 1s
+        sourceCriterion:
+          ipStrategy:
+            depth: 1  # Usar IP del cliente (no forwarded)
+
+    # Rate limit para apps internas (más permisivo)
+    rate-limit-internal:
+      rateLimit:
+        average: 50   # 50 requests por segundo
+        burst: 100    # Hasta 100 requests en burst
         period: 1s
 
     # ==========================================
